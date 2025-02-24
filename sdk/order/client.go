@@ -92,11 +92,11 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse fee rate: %w", err)
 	}
-	
+
 	// Calculate fee amount in decimal with 6 decimal places
 	amountFeeDm := valueDm.Mul(feeRate).Round(6)
 	amountFeeStr := amountFeeDm.String()
-	
+
 	// Convert to the required integer format for the protocol
 	amountFee := amountFeeDm.Shift(6).IntPart()
 
@@ -147,7 +147,7 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 			ContractId:    &params.ContractId,
 			Price:         &price_,
 			Size:          &params.Size,
-			Type:          (*string)(&params.Type),  
+			Type:          (*string)(&params.Type),
 			TimeInForce:   &params.TimeInForce,
 			Side:          &params.Side,
 			L2Signature:   &sigStr,
@@ -158,6 +158,7 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 			L2LimitFee:    &amountFeeStr,
 			ClientOrderId: &clientOrderId,
 			ExpireTime:    &expireTimeStr,
+			ReduceOnly:    &params.ReduceOnly,
 		})
 
 	// Execute request

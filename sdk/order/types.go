@@ -26,13 +26,13 @@ const (
 type OrderType string
 
 const (
-	OrderTypeUnknown           OrderType = "UNKNOWN_ORDER_TYPE"
-	OrderTypeLimit             OrderType = "LIMIT"            
-	OrderTypeMarket            OrderType = "MARKET"           
-	OrderTypeStopLimit         OrderType = "STOP_LIMIT"        
-	OrderTypeStopMarket        OrderType = "STOP_MARKET"       
-	OrderTypeTakeProfitLimit   OrderType = "TAKE_PROFIT_LIMIT"  
-	OrderTypeTakeProfitMarket  OrderType = "TAKE_PROFIT_MARKET" 
+	OrderTypeUnknown          OrderType = "UNKNOWN_ORDER_TYPE"
+	OrderTypeLimit            OrderType = "LIMIT"
+	OrderTypeMarket           OrderType = "MARKET"
+	OrderTypeStopLimit        OrderType = "STOP_LIMIT"
+	OrderTypeStopMarket       OrderType = "STOP_MARKET"
+	OrderTypeTakeProfitLimit  OrderType = "TAKE_PROFIT_LIMIT"
+	OrderTypeTakeProfitMarket OrderType = "TAKE_PROFIT_MARKET"
 )
 
 // Common filter types used across different order APIs
@@ -93,6 +93,7 @@ type CreateOrderParams struct {
 	ClientOrderId *string   `json:"clientOrderId,omitempty"`
 	L2ExpireTime  *int64    `json:"l2ExpireTime,omitempty"`
 	TimeInForce   string    `json:"timeInForce,omitempty"`
+	ReduceOnly    bool      `json:"reduceOnly,omitempty"`
 }
 
 // CancelOrderParams represents parameters for canceling orders
