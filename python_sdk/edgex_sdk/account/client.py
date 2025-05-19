@@ -8,7 +8,7 @@ from ..order.types import ResponseCode
 
 class GetPositionTransactionPageParams:
     """Parameters for getting position transactions with pagination."""
-    
+
     def __init__(
         self,
         size: str = "",
@@ -26,7 +26,7 @@ class GetPositionTransactionPageParams:
 
 class GetCollateralTransactionPageParams:
     """Parameters for getting collateral transactions with pagination."""
-    
+
     def __init__(
         self,
         size: str = "",
@@ -42,7 +42,7 @@ class GetCollateralTransactionPageParams:
 
 class GetPositionTermPageParams:
     """Parameters for getting position terms with pagination."""
-    
+
     def __init__(
         self,
         size: str = "",
@@ -60,7 +60,7 @@ class GetPositionTermPageParams:
 
 class GetAccountAssetSnapshotPageParams:
     """Parameters for getting account asset snapshots with pagination."""
-    
+
     def __init__(
         self,
         size: str = "",
@@ -76,11 +76,11 @@ class GetAccountAssetSnapshotPageParams:
 
 class Client:
     """Client for account-related API endpoints."""
-    
+
     def __init__(self, internal_client: InternalClient, session: requests.Session):
         """
         Initialize the account client.
-        
+
         Args:
             internal_client: The internal client for common functionality
             session: The HTTP session for making requests
@@ -88,408 +88,408 @@ class Client:
         self.internal_client = internal_client
         self.session = session
         self.base_url = internal_client.base_url
-    
+
     async def get_account_asset(self) -> Dict[str, Any]:
         """
         Get the account asset information.
-        
+
         Returns:
             Dict[str, Any]: The account asset information
-            
+
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/account/asset"
+        url = f"{self.base_url}/api/v1/private/account/getAccountAsset"
         params = {
             "accountId": str(self.internal_client.get_account_id())
         }
-        
+
         response = self.session.get(url, params=params)
-        
+
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")
-        
+
         resp_data = response.json()
-        
+
         if resp_data.get("code") != ResponseCode.SUCCESS:
             error_param = resp_data.get("errorParam")
             if error_param:
                 raise ValueError(f"request failed with error params: {error_param}")
             raise ValueError(f"request failed with code: {resp_data.get('code')}")
-        
+
         return resp_data
-    
+
     async def get_account_positions(self) -> Dict[str, Any]:
         """
         Get the account positions.
-        
+
         Returns:
             Dict[str, Any]: The account positions
-            
+
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/account/position"
+        url = f"{self.base_url}/api/v1/private/account/getPositionByContractId"
         params = {
             "accountId": str(self.internal_client.get_account_id())
         }
-        
+
         response = self.session.get(url, params=params)
-        
+
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")
-        
+
         resp_data = response.json()
-        
+
         if resp_data.get("code") != ResponseCode.SUCCESS:
             error_param = resp_data.get("errorParam")
             if error_param:
                 raise ValueError(f"request failed with error params: {error_param}")
             raise ValueError(f"request failed with code: {resp_data.get('code')}")
-        
+
         return resp_data
-    
+
     async def get_position_transaction_page(self, params: GetPositionTransactionPageParams) -> Dict[str, Any]:
         """
         Get the position transactions with pagination.
-        
+
         Args:
             params: Position transaction query parameters
-            
+
         Returns:
             Dict[str, Any]: The position transactions
-            
+
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/account/position-transaction"
+        url = f"{self.base_url}/api/v1/private/account/getPositionTransactionPage"
         query_params = {
             "accountId": str(self.internal_client.get_account_id())
         }
-        
+
         # Add pagination parameters
         if params.size:
             query_params["size"] = params.size
         if params.offset_data:
             query_params["offsetData"] = params.offset_data
-        
+
         # Add filter parameters
         if params.filter_contract_id_list:
             query_params["filterContractIdList"] = ",".join(params.filter_contract_id_list)
-        
+
         # Add time filters
         if params.filter_start_created_time_inclusive > 0:
             query_params["filterStartCreatedTimeInclusive"] = str(params.filter_start_created_time_inclusive)
         if params.filter_end_created_time_exclusive > 0:
             query_params["filterEndCreatedTimeExclusive"] = str(params.filter_end_created_time_exclusive)
-        
+
         response = self.session.get(url, params=query_params)
-        
+
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")
-        
+
         resp_data = response.json()
-        
+
         if resp_data.get("code") != ResponseCode.SUCCESS:
             error_param = resp_data.get("errorParam")
             if error_param:
                 raise ValueError(f"request failed with error params: {error_param}")
             raise ValueError(f"request failed with code: {resp_data.get('code')}")
-        
+
         return resp_data
-    
+
     async def get_collateral_transaction_page(self, params: GetCollateralTransactionPageParams) -> Dict[str, Any]:
         """
         Get the collateral transactions with pagination.
-        
+
         Args:
             params: Collateral transaction query parameters
-            
+
         Returns:
             Dict[str, Any]: The collateral transactions
-            
+
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/account/collateral-transaction"
+        url = f"{self.base_url}/api/v1/private/account/getCollateralTransactionPage"
         query_params = {
             "accountId": str(self.internal_client.get_account_id())
         }
-        
+
         # Add pagination parameters
         if params.size:
             query_params["size"] = params.size
         if params.offset_data:
             query_params["offsetData"] = params.offset_data
-        
+
         # Add time filters
         if params.filter_start_created_time_inclusive > 0:
             query_params["filterStartCreatedTimeInclusive"] = str(params.filter_start_created_time_inclusive)
         if params.filter_end_created_time_exclusive > 0:
             query_params["filterEndCreatedTimeExclusive"] = str(params.filter_end_created_time_exclusive)
-        
+
         response = self.session.get(url, params=query_params)
-        
+
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")
-        
+
         resp_data = response.json()
-        
+
         if resp_data.get("code") != ResponseCode.SUCCESS:
             error_param = resp_data.get("errorParam")
             if error_param:
                 raise ValueError(f"request failed with error params: {error_param}")
             raise ValueError(f"request failed with code: {resp_data.get('code')}")
-        
+
         return resp_data
-    
+
     async def get_position_term_page(self, params: GetPositionTermPageParams) -> Dict[str, Any]:
         """
         Get the position terms with pagination.
-        
+
         Args:
             params: Position term query parameters
-            
+
         Returns:
             Dict[str, Any]: The position terms
-            
+
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/account/position-term"
+        url = f"{self.base_url}/api/v1/private/account/getPositionTermPage"
         query_params = {
             "accountId": str(self.internal_client.get_account_id())
         }
-        
+
         # Add pagination parameters
         if params.size:
             query_params["size"] = params.size
         if params.offset_data:
             query_params["offsetData"] = params.offset_data
-        
+
         # Add filter parameters
         if params.filter_contract_id_list:
             query_params["filterContractIdList"] = ",".join(params.filter_contract_id_list)
-        
+
         # Add time filters
         if params.filter_start_created_time_inclusive > 0:
             query_params["filterStartCreatedTimeInclusive"] = str(params.filter_start_created_time_inclusive)
         if params.filter_end_created_time_exclusive > 0:
             query_params["filterEndCreatedTimeExclusive"] = str(params.filter_end_created_time_exclusive)
-        
+
         response = self.session.get(url, params=query_params)
-        
+
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")
-        
+
         resp_data = response.json()
-        
+
         if resp_data.get("code") != ResponseCode.SUCCESS:
             error_param = resp_data.get("errorParam")
             if error_param:
                 raise ValueError(f"request failed with error params: {error_param}")
             raise ValueError(f"request failed with code: {resp_data.get('code')}")
-        
+
         return resp_data
-    
+
     async def get_account_by_id(self) -> Dict[str, Any]:
         """
         Get account information by ID.
-        
+
         Returns:
             Dict[str, Any]: The account information
-            
+
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/account"
+        url = f"{self.base_url}/api/v1/private/account/getAccountById"
         params = {
             "accountId": str(self.internal_client.get_account_id())
         }
-        
+
         response = self.session.get(url, params=params)
-        
+
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")
-        
+
         resp_data = response.json()
-        
+
         if resp_data.get("code") != ResponseCode.SUCCESS:
             error_param = resp_data.get("errorParam")
             if error_param:
                 raise ValueError(f"request failed with error params: {error_param}")
             raise ValueError(f"request failed with code: {resp_data.get('code')}")
-        
+
         return resp_data
-    
+
     async def get_account_deleverage_light(self) -> Dict[str, Any]:
         """
         Get account deleverage light information.
-        
+
         Returns:
             Dict[str, Any]: The account deleverage light information
-            
+
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/account/deleverage-light"
+        url = f"{self.base_url}/api/v1/private/account/getAccountDeleverageLight"
         params = {
             "accountId": str(self.internal_client.get_account_id())
         }
-        
+
         response = self.session.get(url, params=params)
-        
+
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")
-        
+
         resp_data = response.json()
-        
+
         if resp_data.get("code") != ResponseCode.SUCCESS:
             error_param = resp_data.get("errorParam")
             if error_param:
                 raise ValueError(f"request failed with error params: {error_param}")
             raise ValueError(f"request failed with code: {resp_data.get('code')}")
-        
+
         return resp_data
-    
+
     async def get_account_asset_snapshot_page(self, params: GetAccountAssetSnapshotPageParams) -> Dict[str, Any]:
         """
         Get account asset snapshots with pagination.
-        
+
         Args:
             params: Account asset snapshot query parameters
-            
+
         Returns:
             Dict[str, Any]: The account asset snapshots
-            
+
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/account/asset-snapshot"
+        url = f"{self.base_url}/api/v1/private/account/getAccountAssetSnapshotPage"
         query_params = {
             "accountId": str(self.internal_client.get_account_id())
         }
-        
+
         # Add pagination parameters
         if params.size:
             query_params["size"] = params.size
         if params.offset_data:
             query_params["offsetData"] = params.offset_data
-        
+
         # Add time filters
         if params.filter_start_created_time_inclusive > 0:
             query_params["filterStartCreatedTimeInclusive"] = str(params.filter_start_created_time_inclusive)
         if params.filter_end_created_time_exclusive > 0:
             query_params["filterEndCreatedTimeExclusive"] = str(params.filter_end_created_time_exclusive)
-        
+
         response = self.session.get(url, params=query_params)
-        
+
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")
-        
+
         resp_data = response.json()
-        
+
         if resp_data.get("code") != ResponseCode.SUCCESS:
             error_param = resp_data.get("errorParam")
             if error_param:
                 raise ValueError(f"request failed with error params: {error_param}")
             raise ValueError(f"request failed with code: {resp_data.get('code')}")
-        
+
         return resp_data
-    
+
     async def get_position_transaction_by_id(self, transaction_ids: List[str]) -> Dict[str, Any]:
         """
         Get position transactions by IDs.
-        
+
         Args:
             transaction_ids: List of transaction IDs
-            
+
         Returns:
             Dict[str, Any]: The position transactions
-            
+
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/account/position-transaction/by-id"
+        url = f"{self.base_url}/api/v1/private/account/getPositionTransactionById"
         query_params = {
             "accountId": str(self.internal_client.get_account_id()),
             "transactionIdList": ",".join(transaction_ids)
         }
-        
+
         response = self.session.get(url, params=query_params)
-        
+
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")
-        
+
         resp_data = response.json()
-        
+
         if resp_data.get("code") != ResponseCode.SUCCESS:
             error_param = resp_data.get("errorParam")
             if error_param:
                 raise ValueError(f"request failed with error params: {error_param}")
             raise ValueError(f"request failed with code: {resp_data.get('code')}")
-        
+
         return resp_data
-    
+
     async def get_collateral_transaction_by_id(self, transaction_ids: List[str]) -> Dict[str, Any]:
         """
         Get collateral transactions by IDs.
-        
+
         Args:
             transaction_ids: List of transaction IDs
-            
+
         Returns:
             Dict[str, Any]: The collateral transactions
-            
+
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/account/collateral-transaction/by-id"
+        url = f"{self.base_url}/api/v1/private/account/getCollateralTransactionById"
         query_params = {
             "accountId": str(self.internal_client.get_account_id()),
             "transactionIdList": ",".join(transaction_ids)
         }
-        
+
         response = self.session.get(url, params=query_params)
-        
+
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")
-        
+
         resp_data = response.json()
-        
+
         if resp_data.get("code") != ResponseCode.SUCCESS:
             error_param = resp_data.get("errorParam")
             if error_param:
                 raise ValueError(f"request failed with error params: {error_param}")
             raise ValueError(f"request failed with code: {resp_data.get('code')}")
-        
+
         return resp_data
-    
+
     async def update_leverage_setting(self, contract_id: str, leverage: str) -> None:
         """
         Update the account leverage settings.
-        
+
         Args:
             contract_id: The contract ID
             leverage: The leverage value
-            
+
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/account/leverage"
+        url = f"{self.base_url}/api/v1/private/account/updateLeverageSetting"
         data = {
             "accountId": str(self.internal_client.get_account_id()),
             "contractId": contract_id,
             "leverage": leverage
         }
-        
+
         response = self.session.post(url, json=data)
-        
+
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")
-        
+
         resp_data = response.json()
-        
+
         if resp_data.get("code") != ResponseCode.SUCCESS:
             error_param = resp_data.get("errorParam")
             if error_param:
