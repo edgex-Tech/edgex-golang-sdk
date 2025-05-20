@@ -97,7 +97,9 @@ These tests verify the functionality of the internal client, which handles low-l
 
 ## Integration Tests
 
-Integration tests verify the SDK's interaction with the EdgeX API endpoints. These tests require valid API credentials to pass.
+Integration tests verify the SDK's interaction with the EdgeX API endpoints. Most of these tests require valid API credentials to pass, except for tests of public endpoints.
+
+> **Note**: For information about public endpoints that can be tested without credentials, see [PUBLIC_ENDPOINTS.md](PUBLIC_ENDPOINTS.md).
 
 ### Account API Tests
 
@@ -242,6 +244,17 @@ python run_integration_tests.py
 - `EDGEX_ACCOUNT_ID`: Your EdgeX account ID
 - `EDGEX_STARK_PRIVATE_KEY`: Your Stark private key
 
+### Running Public Endpoint Tests
+
+To run only the tests for public endpoints (which don't require authentication):
+
+```bash
+cd python_sdk
+python run_public_tests.py
+```
+
+This script uses dummy values for the required environment variables and only tests endpoints that don't require authentication.
+
 ### Running Mock Tests
 
 To run integration tests with mock values (for testing the SDK structure without real API calls):
@@ -262,6 +275,8 @@ The tests are designed to run in the following environments:
 ## Future Test Improvements
 
 The following improvements could be made to the test suite:
+
+1. **Separate Public and Private Endpoint Tests**: Fully separate tests for public endpoints from those requiring authentication
 
 1. **Increased Unit Test Coverage**: Add tests for edge cases and error conditions
 2. **Mocking External Dependencies**: Use mocks for API responses to test more scenarios

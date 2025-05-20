@@ -1,0 +1,75 @@
+"""Base test class for public endpoint tests."""
+
+import unittest
+import asyncio
+import logging
+import os
+from typing import Dict, Any, Optional
+
+from edgex_sdk import Client
+from edgex_sdk.internal.mock_signing_adapter import MockSigningAdapter
+from tests.integration.config import BASE_URL
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+class BasePublicEndpointTest(unittest.TestCase):
+    """Base class for public endpoint tests."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up the test class."""
+        # Create a mock signing adapter
+        signing_adapter = MockSigningAdapter()
+        
+        # Create client with dummy values
+        # The account_id and stark_private_key won't be used for public endpoints
+        cls.client = Client(
+            base_url=BASE_URL,
+            account_id=0,  # Dummy value
+            stark_private_key="0" * 64,  # Dummy value
+            signing_adapter=signing_adapter
+        )
+        
+        # Store test data
+        cls.test_data = {}
+
+    def run_async(self, coro):
+        """
+        Run an async coroutine in the current event loop.
+        
+        Args:
+            coro: The coroutine to run
+            
+        Returns:
+            Any: The result of the coroutine
+        """
+        return asyncio.get_event_loop().run_until_complete(coro)
+
+    def setUp(self):
+        """Set up the test."""
+        # Create a new event loop for each test
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+    def tearDown(self):
+        """Tear down the test."""
+        # Close the event loop
+        self.loop.close()
+
+    def assertResponseSuccess(self, response: Dict[str, Any], msg: Optional[str] = None):
+        """
+        Assert that a response is successful.
+        
+        Args:
+            response: The response to check
+            msg: Optional message to display on failure
+        """
+        self.assertIn("code", response, msg=msg)
+        self.assertEqual(response["code"], "SUCCESS", msg=msg)
+        self.assertIn("data", response, msg=msg)
