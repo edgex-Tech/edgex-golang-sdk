@@ -54,10 +54,10 @@ The following endpoints are public and can be accessed without authentication:
 
 ### WebSocket Endpoints
 
-1. **Public WebSocket** (`wss://quote-testnet.edgex.exchange/ws/public`)
+1. **Public WebSocket** (`wss://testnet.edgex.exchange/ws/public`)
    - Provides real-time market data
    - Implemented in `ws.manager.connect_public()`
-   - Note: The WebSocket URL for testnet is different from the main API URL (`quote-testnet.edgex.exchange` instead of `testnet.edgex.exchange`)
+   - Note: The WebSocket URL uses the same base URL as the REST API but with `wss://` instead of `https://`
    - Note: The WebSocket endpoint might not be publicly accessible without authentication or might require specific headers
    - Note: Testing WebSocket connections may be challenging without proper credentials or in certain environments. The test is designed to skip rather than fail if it encounters connection issues.
 
@@ -92,7 +92,8 @@ logger = logging.getLogger(__name__)
 # Set dummy values for required environment variables
 # These won't be used for authentication but are needed for client initialization
 os.environ["EDGEX_BASE_URL"] = "https://testnet.edgex.exchange"
-os.environ["EDGEX_WS_URL"] = "wss://quote-testnet.edgex.exchange"
+# Use the same base URL for WebSocket but with wss:// instead of https://
+os.environ["EDGEX_WS_URL"] = os.environ["EDGEX_BASE_URL"].replace("https://", "wss://")
 os.environ["EDGEX_ACCOUNT_ID"] = "0"  # Dummy value
 os.environ["EDGEX_STARK_PRIVATE_KEY"] = "0" * 64  # Dummy value
 os.environ["EDGEX_SIGNING_ADAPTER"] = "mock"  # Use mock adapter
