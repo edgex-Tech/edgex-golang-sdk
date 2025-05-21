@@ -58,6 +58,7 @@ The following endpoints are public and can be accessed without authentication:
    - Provides real-time market data
    - Implemented in `ws.manager.connect_public()`
    - Note: The WebSocket URL for testnet is different from the main API URL (`quote-testnet.edgex.exchange` instead of `testnet.edgex.exchange`)
+   - Note: The WebSocket endpoint might not be publicly accessible without authentication or might require specific headers
    - Note: Testing WebSocket connections may be challenging without proper credentials or in certain environments. The test is designed to skip rather than fail if it encounters connection issues.
 
 ## Testing Public Endpoints
