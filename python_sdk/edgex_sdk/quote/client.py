@@ -195,7 +195,7 @@ class Client:
         url = f"{self.base_url}/api/v1/public/quote/getDepth"
         query_params = {
             "contractId": params.contract_id,
-            "limit": str(params.limit)
+            "level": str(params.limit)  # The API expects 'level', not 'limit'
         }
 
         response = self.session.get(url, params=query_params)

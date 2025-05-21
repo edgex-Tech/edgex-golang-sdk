@@ -26,9 +26,10 @@ class TestPublicWebSocketAPI(BasePublicEndpointTest):
 
         # Create a WebSocket manager with dummy credentials
         # Use the correct testnet WebSocket URL
-        ws_url = "wss://quote-testnet.edgex.exchange"
+        # The WebSocket URL should be the same as the base URL but with wss:// instead of https://
+        base_url = BASE_URL.replace("https://", "wss://")
         self.ws_manager = WebSocketManager(
-            base_url=ws_url,
+            base_url=base_url,
             account_id=0,  # Dummy value
             stark_pri_key="0" * 64,  # Dummy value
             signing_adapter=self.client.internal_client.signing_adapter

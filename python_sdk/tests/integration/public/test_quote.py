@@ -65,7 +65,7 @@ class TestPublicQuoteAPI(BasePublicEndpointTest):
         # Create parameters
         params = GetOrderBookDepthParams(
             contract_id=TEST_CONTRACT_ID,
-            limit=5  # Use a smaller limit to avoid INVALID_DEPTH_LEVEL error
+            limit=200  # Use a valid depth level (15 or 200)
         )
 
         try:
