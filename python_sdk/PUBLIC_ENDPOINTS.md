@@ -57,6 +57,7 @@ The following endpoints are public and can be accessed without authentication:
 1. **Public WebSocket** (`/ws/public`)
    - Provides real-time market data
    - Implemented in `ws.manager.connect_public()`
+   - Note: Testing WebSocket connections may be challenging without proper credentials or in certain environments. The test is designed to skip rather than fail if it encounters connection issues.
 
 ## Testing Public Endpoints
 
@@ -144,7 +145,7 @@ class BasePublicEndpointTest(unittest.TestCase):
         """Set up the test class."""
         # Create a mock signing adapter
         signing_adapter = MockSigningAdapter()
-        
+
         # Create client with dummy values
         # The account_id and stark_private_key won't be used for public endpoints
         cls.client = Client(
@@ -153,17 +154,17 @@ class BasePublicEndpointTest(unittest.TestCase):
             stark_private_key="0" * 64,  # Dummy value
             signing_adapter=signing_adapter
         )
-        
+
         # Store test data
         cls.test_data = {}
 
     def run_async(self, coro):
         """
         Run an async coroutine in the current event loop.
-        
+
         Args:
             coro: The coroutine to run
-            
+
         Returns:
             Any: The result of the coroutine
         """
@@ -183,7 +184,7 @@ class BasePublicEndpointTest(unittest.TestCase):
     def assertResponseSuccess(self, response: Dict[str, Any]):
         """
         Assert that a response is successful.
-        
+
         Args:
             response: The response to check
         """
@@ -307,7 +308,7 @@ class TestPublicQuoteAPI(BasePublicEndpointTest):
 
         # Check data
         data = klines.get("data", {})
-        
+
         # Log K-line details
         if "list" in data and data["list"]:
             first_kline = data["list"][0]

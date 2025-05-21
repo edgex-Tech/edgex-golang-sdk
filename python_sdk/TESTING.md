@@ -255,6 +255,8 @@ python run_public_tests.py
 
 This script uses dummy values for the required environment variables and only tests endpoints that don't require authentication.
 
+**Note**: Some tests, particularly the WebSocket test, may be skipped due to connection issues or API limitations. This is expected behavior and doesn't indicate a problem with the SDK.
+
 ### Running Mock Tests
 
 To run integration tests with mock values (for testing the SDK structure without real API calls):
