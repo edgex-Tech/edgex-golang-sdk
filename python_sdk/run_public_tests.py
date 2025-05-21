@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # Set dummy values for required environment variables
 # These won't be used for authentication but are needed for client initialization
 os.environ["EDGEX_BASE_URL"] = "https://testnet.edgex.exchange"
-os.environ["EDGEX_WS_URL"] = "wss://testnet.edgex.exchange"
+os.environ["EDGEX_WS_URL"] = "wss://quote-testnet.edgex.exchange"
 os.environ["EDGEX_ACCOUNT_ID"] = "0"  # Dummy value
 os.environ["EDGEX_STARK_PRIVATE_KEY"] = "0" * 64  # Dummy value
 os.environ["EDGEX_SIGNING_ADAPTER"] = "mock"  # Use mock adapter
