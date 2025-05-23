@@ -36,7 +36,7 @@ class Manager:
         """
         if not self.public_client:
             self.public_client = Client(
-                url=f"{self.base_url}/ws/public",
+                url=f"{self.base_url}/api/v1/public/ws",
                 is_private=False,
                 account_id=self.account_id,
                 stark_pri_key=self.stark_pri_key,
@@ -54,7 +54,7 @@ class Manager:
         """
         if not self.private_client:
             self.private_client = Client(
-                url=f"{self.base_url}/ws/private?accountId={self.account_id}",
+                url=f"{self.base_url}/api/v1/private/ws?accountId={self.account_id}",
                 is_private=True,
                 account_id=self.account_id,
                 stark_pri_key=self.stark_pri_key,
