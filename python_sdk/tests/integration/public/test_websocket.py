@@ -8,13 +8,13 @@ from typing import Dict, Any, List
 
 from edgex_sdk import WebSocketManager
 from tests.integration.public.base_test import BasePublicEndpointTest
-from tests.integration.config import BASE_URL
+from tests.integration.config import BASE_URL, WS_URL
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Test contract ID
-TEST_CONTRACT_ID = "BTC-USDT"  # Use a common contract that should exist
+TEST_CONTRACT_ID = "10000001"  # BTCUSDT contract
 
 
 class TestPublicWebSocketAPI(BasePublicEndpointTest):
@@ -25,11 +25,9 @@ class TestPublicWebSocketAPI(BasePublicEndpointTest):
         super().setUp()
 
         # Create a WebSocket manager with dummy credentials
-        # Use the correct testnet WebSocket URL
-        # The WebSocket URL should be the same as the base URL but with wss:// instead of https://
-        base_url = BASE_URL.replace("https://", "wss://")
+        # Use the correct WebSocket URL from config
         self.ws_manager = WebSocketManager(
-            base_url=base_url,
+            base_url=WS_URL,
             account_id=0,  # Dummy value
             stark_pri_key="0" * 64,  # Dummy value
             signing_adapter=self.client.internal_client.signing_adapter

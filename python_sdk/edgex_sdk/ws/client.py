@@ -55,10 +55,13 @@ class Client:
             ValueError: If the connection fails
         """
         headers = {}
+        url = self.url
+
+        # Add timestamp parameter for both public and private connections
+        timestamp = int(time.time() * 1000)
 
         if self.is_private:
             # Add timestamp header
-            timestamp = int(time.time() * 1000)
             headers["X-edgeX-Api-Timestamp"] = str(timestamp)
 
             # Generate signature content
@@ -78,10 +81,14 @@ class Client:
 
             # Set signature header
             headers["X-edgeX-Api-Signature"] = f"{r}{s}"
+        else:
+            # For public connections, add timestamp as URL parameter
+            separator = "&" if "?" in url else "?"
+            url = f"{url}{separator}timestamp={timestamp}"
 
         # Create WebSocket connection
         try:
-            self.conn = websocket.create_connection(self.url, header=headers)
+            self.conn = websocket.create_connection(url, header=headers)
         except Exception as e:
             raise ValueError(f"failed to connect to WebSocket: {str(e)}")
 

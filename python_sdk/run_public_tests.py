@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 
 # Set dummy values for required environment variables
 # These won't be used for authentication but are needed for client initialization
-os.environ["EDGEX_BASE_URL"] = "https://testnet.edgex.exchange"
-# Use the same base URL for WebSocket but with wss:// instead of https://
-os.environ["EDGEX_WS_URL"] = os.environ["EDGEX_BASE_URL"].replace("https://", "wss://")
+os.environ["EDGEX_BASE_URL"] = "https://pro.edgex.exchange"
+# Use the correct WebSocket URL
+os.environ["EDGEX_WS_URL"] = "wss://quote.edgex.exchange"
 os.environ["EDGEX_ACCOUNT_ID"] = "0"  # Dummy value
 os.environ["EDGEX_STARK_PRIVATE_KEY"] = "0" * 64  # Dummy value
 os.environ["EDGEX_SIGNING_ADAPTER"] = "mock"  # Use mock adapter

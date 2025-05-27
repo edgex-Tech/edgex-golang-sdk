@@ -10,7 +10,7 @@ from tests.integration.public.base_test import BasePublicEndpointTest
 logger = logging.getLogger(__name__)
 
 # Test contract ID
-TEST_CONTRACT_ID = "BTC-USDT"  # Use a common contract that should exist
+TEST_CONTRACT_ID = "10000001"  # BTCUSDT contract
 
 
 class TestPublicQuoteAPI(BasePublicEndpointTest):
@@ -40,7 +40,7 @@ class TestPublicQuoteAPI(BasePublicEndpointTest):
         # Create parameters
         params = GetKLineParams(
             contract_id=TEST_CONTRACT_ID,
-            interval="1m",
+            interval="HOUR_1",
             size="10"
         )
 
@@ -76,18 +76,20 @@ class TestPublicQuoteAPI(BasePublicEndpointTest):
             self.assertResponseSuccess(depth)
 
             # Check data
-            data = depth.get("data", {})
+            data = depth.get("data", [])
+            self.assertIsInstance(data, list)
 
             # The data might be empty for the test contract
             if data:
-                self.assertIn("asks", data)
-                self.assertIn("bids", data)
-                self.assertIsInstance(data["asks"], list)
-                self.assertIsInstance(data["bids"], list)
+                depth_data = data[0]  # Get first item from list
+                self.assertIn("asks", depth_data)
+                self.assertIn("bids", depth_data)
+                self.assertIsInstance(depth_data["asks"], list)
+                self.assertIsInstance(depth_data["bids"], list)
 
                 # Log depth details
-                asks = data["asks"]
-                bids = data["bids"]
+                asks = depth_data["asks"]
+                bids = depth_data["bids"]
                 logger.info(f"Order book depth for {TEST_CONTRACT_ID}: {len(asks)} asks, {len(bids)} bids")
             else:
                 # Log that no data was returned
