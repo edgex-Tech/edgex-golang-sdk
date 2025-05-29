@@ -91,7 +91,7 @@ class TestOrderAPI(BaseIntegrationTest):
         # This tests the order creation/cancellation flow without risk of actual trading
         params = CreateOrderParams(
             contract_id=TEST_CONTRACT_ID,
-            size="0.001",  # Very small size
+            size="0.01",  # Minimum step size
             price="999999",  # Extremely high price to avoid execution
             type=OrderType.LIMIT,
             side=OrderSide.BUY,

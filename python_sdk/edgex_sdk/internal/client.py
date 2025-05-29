@@ -101,10 +101,10 @@ class Client:
         Returns:
             int: The calculated nonce
         """
-        # Use the first 8 characters of the hash of the client order ID
-        keccak = sha3.keccak_256()
-        keccak.update(client_order_id.encode())
-        hash_hex = keccak.hexdigest()
+        # Use SHA256 like the Go SDK (not Keccak256)
+        h = hashlib.sha256()
+        h.update(client_order_id.encode())
+        hash_hex = h.hexdigest()
         return int(hash_hex[:8], 16)
 
     def calc_limit_order_hash(
@@ -280,6 +280,10 @@ class Client:
 
         if isinstance(data, str):
             return data
+
+        if isinstance(data, bool):
+            # Convert boolean to lowercase string to match Go SDK
+            return str(data).lower()
 
         if isinstance(data, (int, float)):
             return str(data)
