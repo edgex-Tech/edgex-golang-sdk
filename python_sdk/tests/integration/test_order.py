@@ -85,7 +85,6 @@ class TestOrderAPI(BaseIntegrationTest):
         # Log transaction count
         logger.info(f"Found {len(data.get('dataList', []))} order fill transactions")
 
-    @unittest.skip("Order creation requires full Pedersen hash implementation - placeholder hash insufficient for L2 signature validation")
     def test_create_and_cancel_order(self):
         """Test create_order and cancel_order methods."""
         # Create order parameters with extremely high price to avoid execution

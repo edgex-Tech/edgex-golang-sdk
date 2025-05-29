@@ -10,6 +10,13 @@ import sha3
 from .mock_signing_adapter import MockSigningAdapter
 from .signing_adapter import SigningAdapter
 
+# Import field prime for modular arithmetic
+try:
+    from ..crypto.constants import FIELD_PRIME
+except ImportError:
+    # Fallback if crypto module is not available
+    FIELD_PRIME = 0x800000000000011000000000000000000000000000000000000000000000001
+
 # Constants
 LIMIT_ORDER_WITH_FEE_TYPE = 3
 
@@ -139,10 +146,10 @@ class Client:
         if fee_asset_id.startswith('0x'):
             fee_asset_id = fee_asset_id[2:]
 
-        # Convert hex strings to integers
-        asset_id_synthetic = int(synthetic_asset_id, 16)
-        asset_id_collateral = int(collateral_asset_id, 16)
-        asset_id_fee = int(fee_asset_id, 16)
+        # Convert hex strings to integers and ensure they're within the field
+        asset_id_synthetic = int(synthetic_asset_id, 16) % FIELD_PRIME
+        asset_id_collateral = int(collateral_asset_id, 16) % FIELD_PRIME
+        asset_id_fee = int(fee_asset_id, 16) % FIELD_PRIME
 
         # Determine buy/sell assets based on order direction
         if is_buy:
@@ -171,6 +178,7 @@ class Client:
         packed_message0 = (packed_message0 << 64) + amount_buy
         packed_message0 = (packed_message0 << 64) + amount_fee
         packed_message0 = (packed_message0 << 32) + nonce
+        packed_message0 = packed_message0 % FIELD_PRIME  # Ensure within field
 
         # Third hash: hash(msg, packed_message0)
         msg = self.signing_adapter.pedersen_hash([msg_int, packed_message0])
@@ -184,6 +192,7 @@ class Client:
         packed_message1 = (packed_message1 << 64) + account_id
         packed_message1 = (packed_message1 << 32) + expire_time
         packed_message1 = packed_message1 << 17  # Padding
+        packed_message1 = packed_message1 % FIELD_PRIME  # Ensure within field
 
         # Final hash: hash(msg, packed_message1)
         msg = self.signing_adapter.pedersen_hash([msg_int, packed_message1])
@@ -235,6 +244,7 @@ class Client:
         packed_msg0 = (packed_msg0 << 64) + receiver_position_id
         packed_msg0 = (packed_msg0 << 64) + fee_position_id
         packed_msg0 = (packed_msg0 << 32) + nonce
+        packed_msg0 = packed_msg0 % FIELD_PRIME  # Ensure within field
 
         # Third hash: hash(msg, packed_msg0)
         msg = self.signing_adapter.pedersen_hash([msg_int, packed_msg0])
@@ -247,6 +257,7 @@ class Client:
         packed_msg1 = (packed_msg1 << 64) + max_amount_fee
         packed_msg1 = (packed_msg1 << 32) + expiration_timestamp
         packed_msg1 = packed_msg1 << 81  # Padding
+        packed_msg1 = packed_msg1 % FIELD_PRIME  # Ensure within field
 
         # Final hash: hash(msg, packed_msg1)
         msg = self.signing_adapter.pedersen_hash([msg_int, packed_msg1])

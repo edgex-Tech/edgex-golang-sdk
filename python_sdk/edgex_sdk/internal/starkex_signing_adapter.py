@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Tuple, Union
 from ecdsa.rfc6979 import generate_k
 
 from .signing_adapter import SigningAdapter
+from ..crypto.pedersen_hash import pedersen_hash_bytes
 
 
 # StarkEx curve parameters
@@ -157,6 +158,9 @@ class StarkExSigningAdapter(SigningAdapter):
         """
         Calculate the Pedersen hash of a list of integers.
 
+        This method now uses the full Pedersen hash implementation
+        that follows StarkWare's specification.
+
         Args:
             elements: List of integers to hash
 
@@ -167,35 +171,8 @@ class StarkExSigningAdapter(SigningAdapter):
             ValueError: If the calculation fails
         """
         try:
-            # This is a simplified implementation of Pedersen hash
-            # For a full implementation, we would need the constant points
-            # For now, we'll use a placeholder that combines the elements
-
-            # Start with the shift point (first constant point)
-            # In a real implementation, this would be loaded from constant points
-            result_x = 0x49ee3eba8c1600700ee1b87eb599f16716b0b1022947733551fde4050ca6804
-            result_y = 0x3ca0cfe4b3bc6ddf346d49d06ea0ed34e621062c0e056c1d0405d266e10268a
-
-            for i, element in enumerate(elements):
-                # Ensure element is in valid range
-                if element < 0 or element >= FIELD_PRIME:
-                    raise ValueError(f"Element {element} is out of range")
-
-                # For each element, we would normally iterate through 252 bits
-                # and add constant points based on the bit values
-                # This is a simplified version that just combines the elements
-
-                # Simple combination for testing - not cryptographically secure
-                element_contribution_x = (element * (i + 1)) % FIELD_PRIME
-                element_contribution_y = (element * (i + 2)) % FIELD_PRIME
-
-                # Add the contribution (simplified)
-                result_x = (result_x + element_contribution_x) % FIELD_PRIME
-                result_y = (result_y + element_contribution_y) % FIELD_PRIME
-
-            # Return the x-coordinate as bytes (32 bytes, big-endian)
-            return result_x.to_bytes(32, byteorder='big')
-
+            # Use the full Pedersen hash implementation
+            return pedersen_hash_bytes(*elements)
         except Exception as e:
             raise ValueError(f"Failed to calculate Pedersen hash: {str(e)}")
 

@@ -165,7 +165,11 @@ class Client:
         response = self.session.post(url, json=request_data)
 
         if response.status_code != 200:
-            raise ValueError(f"request failed with status code: {response.status_code}")
+            try:
+                error_detail = response.json()
+                raise ValueError(f"request failed with status code: {response.status_code}, response: {error_detail}")
+            except:
+                raise ValueError(f"request failed with status code: {response.status_code}, response: {response.text}")
 
         resp_data = response.json()
 
