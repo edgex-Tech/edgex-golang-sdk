@@ -85,14 +85,15 @@ class TestOrderAPI(BaseIntegrationTest):
         # Log transaction count
         logger.info(f"Found {len(data.get('dataList', []))} order fill transactions")
 
-    @unittest.skip("Skipping order creation to avoid actual orders")
+    @unittest.skip("Order creation requires complex L2 signature calculation - needs further investigation")
     def test_create_and_cancel_order(self):
         """Test create_order and cancel_order methods."""
-        # Create order parameters
+        # Create order parameters with extremely high price to avoid execution
+        # This tests the order creation/cancellation flow without risk of actual trading
         params = CreateOrderParams(
             contract_id=TEST_CONTRACT_ID,
-            size=TEST_ORDER_SIZE,
-            price=TEST_ORDER_PRICE,
+            size="0.001",  # Very small size
+            price="999999",  # Extremely high price to avoid execution
             type=OrderType.LIMIT,
             side=OrderSide.BUY,
             time_in_force=TimeInForce.GOOD_TIL_CANCEL

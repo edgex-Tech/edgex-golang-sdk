@@ -23,8 +23,9 @@ class TestTransferAPI(BaseIntegrationTest):
 
     def test_get_withdraw_available_amount(self):
         """Test get_withdraw_available_amount method."""
+        # Try with coinId "1000" first (we know this exists from account tests)
         params = GetWithdrawAvailableAmountParams(
-            coin_id="2"  # USDT
+            coin_id="1000"  # The coin we know exists from account asset tests
         )
 
         try:
@@ -39,12 +40,22 @@ class TestTransferAPI(BaseIntegrationTest):
 
             if "availableAmount" in data:
                 available = data["availableAmount"]
-                logger.info(f"Available withdraw amount for USDT: {available}")
+                logger.info(f"Available withdraw amount for coinId 1000: {available}")
+            else:
+                logger.info(f"Withdraw available amount response: {data}")
 
         except Exception as e:
-            # Some endpoints might not be available for test accounts
-            logger.warning(f"Withdraw available amount test failed (expected for test accounts): {e}")
-            self.skipTest(f"Withdraw available amount not available: {e}")
+            # If coinId 1000 doesn't work, try coinId "2" (USDT)
+            logger.info(f"CoinId 1000 failed, trying coinId 2: {e}")
+            try:
+                params = GetWithdrawAvailableAmountParams(coin_id="2")
+                amount = self.run_async(self.client.transfer.get_withdraw_available_amount(params))
+                self.assertResponseSuccess(amount)
+                data = amount.get("data", {})
+                logger.info(f"Available withdraw amount for coinId 2: {data}")
+            except Exception as e2:
+                logger.warning(f"Both coinId 1000 and 2 failed: {e2}")
+                self.skipTest(f"Withdraw available amount not available for test coins: {e2}")
 
     def test_get_transfer_out_page(self):
         """Test get_transfer_out_page method."""

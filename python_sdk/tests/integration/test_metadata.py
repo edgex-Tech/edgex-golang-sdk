@@ -55,9 +55,14 @@ class TestMetadataAPI(BaseIntegrationTest):
 
     def test_contract_exists(self):
         """Test that the test contract exists in the contract list."""
-        # Skip if contract list is not available
+        # Get contract list (fetch if not available)
         if "contract_list" not in self.__class__.test_data:
-            self.skipTest("Contract list not available")
+            # Fetch metadata to get contract list
+            metadata = self.run_async(self.client.get_metadata())
+            self.assertResponseSuccess(metadata)
+            data = metadata.get("data", {})
+            self.assertIn("contractList", data)
+            self.__class__.test_data["contract_list"] = data["contractList"]
 
         # Get contract list
         contract_list = self.__class__.test_data["contract_list"]
