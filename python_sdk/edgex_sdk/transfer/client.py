@@ -47,6 +47,34 @@ class CreateTransferOutParams:
         self.client_order_id = client_order_id
 
 
+class GetTransferOutPageParams:
+    """Parameters for getting transfer out page."""
+
+    def __init__(self, size: str = "10", offset_data: str = "", filter_coin_id_list: List[str] = None,
+                 filter_status_list: List[str] = None, filter_start_created_time_inclusive: int = 0,
+                 filter_end_created_time_exclusive: int = 0):
+        self.size = size
+        self.offset_data = offset_data
+        self.filter_coin_id_list = filter_coin_id_list or []
+        self.filter_status_list = filter_status_list or []
+        self.filter_start_created_time_inclusive = filter_start_created_time_inclusive
+        self.filter_end_created_time_exclusive = filter_end_created_time_exclusive
+
+
+class GetTransferInPageParams:
+    """Parameters for getting transfer in page."""
+
+    def __init__(self, size: str = "10", offset_data: str = "", filter_coin_id_list: List[str] = None,
+                 filter_status_list: List[str] = None, filter_start_created_time_inclusive: int = 0,
+                 filter_end_created_time_exclusive: int = 0):
+        self.size = size
+        self.offset_data = offset_data
+        self.filter_coin_id_list = filter_coin_id_list or []
+        self.filter_status_list = filter_status_list or []
+        self.filter_start_created_time_inclusive = filter_start_created_time_inclusive
+        self.filter_end_created_time_exclusive = filter_end_created_time_exclusive
+
+
 class Client:
     """Client for transfer-related API endpoints."""
 
@@ -220,23 +248,13 @@ class Client:
 
     async def get_transfer_out_page(
         self,
-        size: str = "",
-        offset_data: str = "",
-        filter_coin_id_list: List[str] = None,
-        filter_status_list: List[str] = None,
-        filter_start_created_time_inclusive: int = 0,
-        filter_end_created_time_exclusive: int = 0
+        params: GetTransferOutPageParams
     ) -> Dict[str, Any]:
         """
         Get transfer out records with pagination.
 
         Args:
-            size: Size of the page
-            offset_data: Offset data for pagination
-            filter_coin_id_list: Filter by coin IDs
-            filter_status_list: Filter by status
-            filter_start_created_time_inclusive: Filter start time (inclusive)
-            filter_end_created_time_exclusive: Filter end time (exclusive)
+            params: Parameters for the request
 
         Returns:
             Dict[str, Any]: The transfer out records
@@ -250,22 +268,22 @@ class Client:
         }
 
         # Add pagination parameters
-        if size:
-            query_params["size"] = size
-        if offset_data:
-            query_params["offsetData"] = offset_data
+        if params.size:
+            query_params["size"] = params.size
+        if params.offset_data:
+            query_params["offsetData"] = params.offset_data
 
         # Add filter parameters
-        if filter_coin_id_list:
-            query_params["filterCoinIdList"] = ",".join(filter_coin_id_list)
-        if filter_status_list:
-            query_params["filterStatusList"] = ",".join(filter_status_list)
+        if params.filter_coin_id_list:
+            query_params["filterCoinIdList"] = ",".join(params.filter_coin_id_list)
+        if params.filter_status_list:
+            query_params["filterStatusList"] = ",".join(params.filter_status_list)
 
         # Add time filters
-        if filter_start_created_time_inclusive > 0:
-            query_params["filterStartCreatedTimeInclusive"] = str(filter_start_created_time_inclusive)
-        if filter_end_created_time_exclusive > 0:
-            query_params["filterEndCreatedTimeExclusive"] = str(filter_end_created_time_exclusive)
+        if params.filter_start_created_time_inclusive > 0:
+            query_params["filterStartCreatedTimeInclusive"] = str(params.filter_start_created_time_inclusive)
+        if params.filter_end_created_time_exclusive > 0:
+            query_params["filterEndCreatedTimeExclusive"] = str(params.filter_end_created_time_exclusive)
 
         response = self.session.get(url, params=query_params)
 
@@ -284,12 +302,7 @@ class Client:
 
     async def get_transfer_in_page(
         self,
-        size: str = "",
-        offset_data: str = "",
-        filter_coin_id_list: List[str] = None,
-        filter_status_list: List[str] = None,
-        filter_start_created_time_inclusive: int = 0,
-        filter_end_created_time_exclusive: int = 0
+        params: GetTransferInPageParams
     ) -> Dict[str, Any]:
         """
         Get transfer in records with pagination.

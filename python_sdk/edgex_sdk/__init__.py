@@ -30,7 +30,14 @@ from .transfer.client import (
     GetTransferOutByIdParams,
     GetTransferInByIdParams,
     GetWithdrawAvailableAmountParams,
-    CreateTransferOutParams
+    CreateTransferOutParams,
+    GetTransferOutPageParams,
+    GetTransferInPageParams
+)
+from .asset.client import (
+    GetAssetOrdersParams,
+    CreateWithdrawalParams,
+    GetWithdrawalRecordsParams
 )
 from .ws.manager import Manager as WebSocketManager
 
@@ -55,6 +62,11 @@ __all__ = [
     "GetTransferInByIdParams",
     "GetWithdrawAvailableAmountParams",
     "CreateTransferOutParams",
+    "GetTransferOutPageParams",
+    "GetTransferInPageParams",
+    "GetAssetOrdersParams",
+    "CreateWithdrawalParams",
+    "GetWithdrawalRecordsParams",
     "WebSocketManager",
     "SigningAdapter",
     "MockSigningAdapter",
