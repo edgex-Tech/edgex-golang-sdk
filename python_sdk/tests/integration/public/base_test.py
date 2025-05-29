@@ -7,7 +7,7 @@ import os
 from typing import Dict, Any, Optional
 
 from edgex_sdk import Client
-from edgex_sdk.internal.mock_signing_adapter import MockSigningAdapter
+from edgex_sdk.internal.starkex_signing_adapter import StarkExSigningAdapter
 from tests.integration.config import BASE_URL
 
 # Configure logging
@@ -24,8 +24,8 @@ class BasePublicEndpointTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up the test class."""
-        # Create a mock signing adapter
-        signing_adapter = MockSigningAdapter()
+        # Create a StarkEx signing adapter
+        signing_adapter = StarkExSigningAdapter()
         
         # Create client with dummy values
         # The account_id and stark_private_key won't be used for public endpoints

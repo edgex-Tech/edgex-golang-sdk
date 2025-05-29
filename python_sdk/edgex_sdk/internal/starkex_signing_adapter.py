@@ -192,8 +192,8 @@ class StarkExSigningAdapter(SigningAdapter):
         # and there is a negligible probability a drawn k cannot be used for signing.
         # This is why we have this loop.
         while True:
-            # Use random nonce generation (non-deterministic) like the Go SDK
-            k = secrets.randbelow(EC_ORDER - 1) + 1
+            # Use deterministic nonce generation (RFC 6979) like the Go SDK
+            k = self._generate_k_rfc6979(msg_hash, priv_key)
 
             # Cannot fail because 0 < k < EC_ORDER and EC_ORDER is prime.
             x = self._ec_mult(k, EC_GEN)[0]

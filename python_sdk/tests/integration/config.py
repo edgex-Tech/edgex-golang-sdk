@@ -3,7 +3,6 @@
 import os
 from typing import Dict, Any
 
-from edgex_sdk.internal.mock_signing_adapter import MockSigningAdapter
 from edgex_sdk.internal.starkex_signing_adapter import StarkExSigningAdapter
 
 # Load environment variables
@@ -17,8 +16,7 @@ TEST_CONTRACT_ID = "10000004"  # Contract ID provided
 TEST_ORDER_SIZE = "0.001"
 TEST_ORDER_PRICE = "30000"
 
-# Create signing adapters for testing
-MOCK_SIGNING_ADAPTER = MockSigningAdapter()
+# Create signing adapter for testing
 STARKEX_SIGNING_ADAPTER = StarkExSigningAdapter()
 
 # Check if required environment variables are set

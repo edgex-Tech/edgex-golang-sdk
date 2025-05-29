@@ -7,7 +7,6 @@ from typing import Dict, Any, Optional, Tuple, List, Union
 import requests
 import sha3
 
-from .mock_signing_adapter import MockSigningAdapter
 from .signing_adapter import SigningAdapter
 
 # Import field prime for modular arithmetic
@@ -52,8 +51,10 @@ class Client:
         self.account_id = account_id
         self.stark_pri_key = stark_pri_key
 
-        # Use the provided signing adapter or create a mock one
-        self.signing_adapter = signing_adapter or MockSigningAdapter()
+        # Use the provided signing adapter (required)
+        if signing_adapter is None:
+            raise ValueError("signing_adapter is required")
+        self.signing_adapter = signing_adapter
 
     def get_account_id(self) -> int:
         """Get the account ID."""

@@ -128,8 +128,8 @@ class Client:
         # Sign the order
         sig = self.internal_client.sign(sig_hash)
 
-        # Convert signature to string (StarkEx uses only r and s, no v component)
-        sig_str = f"{sig.r}{sig.s}"
+        # Convert signature to string (include v component like Go SDK, even though it's empty)
+        sig_str = f"{sig.r}{sig.s}{sig.v if hasattr(sig, 'v') and sig.v else ''}"
 
 
 

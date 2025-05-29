@@ -4,7 +4,6 @@ EdgeX Python SDK - A Python SDK for interacting with the EdgeX Exchange API.
 
 from .client import Client
 from .internal.signing_adapter import SigningAdapter
-from .internal.mock_signing_adapter import MockSigningAdapter
 from .internal.starkex_signing_adapter import StarkExSigningAdapter
 from .order.types import (
     OrderType,
@@ -69,6 +68,5 @@ __all__ = [
     "GetWithdrawalRecordsParams",
     "WebSocketManager",
     "SigningAdapter",
-    "MockSigningAdapter",
     "StarkExSigningAdapter"
 ]

@@ -7,7 +7,7 @@ import os
 from typing import Dict, Any, Optional
 
 from edgex_sdk import Client, WebSocketManager
-from .config import BASE_URL, WS_URL, ACCOUNT_ID, STARK_PRIVATE_KEY, MOCK_SIGNING_ADAPTER, STARKEX_SIGNING_ADAPTER, check_env_vars
+from .config import BASE_URL, WS_URL, ACCOUNT_ID, STARK_PRIVATE_KEY, STARKEX_SIGNING_ADAPTER, check_env_vars
 
 # Configure logging
 logging.basicConfig(
@@ -31,26 +31,23 @@ class BaseIntegrationTest(unittest.TestCase):
                 f"Skipping integration tests because the following environment variables are not set: {', '.join(missing_vars)}"
             )
 
-        # Choose the signing adapter based on the environment variable
-        signing_adapter = MOCK_SIGNING_ADAPTER if os.getenv("EDGEX_SIGNING_ADAPTER") == "mock" else STARKEX_SIGNING_ADAPTER
-
-        # Create client with the chosen signing adapter
+        # Create client with StarkEx signing adapter
         cls.client = Client(
             base_url=BASE_URL,
             account_id=ACCOUNT_ID,
             stark_private_key=STARK_PRIVATE_KEY,
-            signing_adapter=signing_adapter
+            signing_adapter=STARKEX_SIGNING_ADAPTER
         )
 
         # Log which signing adapter is being used
-        logger.info(f"Using {'mock' if os.getenv('EDGEX_SIGNING_ADAPTER') == 'mock' else 'StarkEx'} signing adapter")
+        logger.info("Using StarkEx signing adapter")
 
-        # Create WebSocket manager with the chosen signing adapter
+        # Create WebSocket manager with StarkEx signing adapter
         cls.ws_manager = WebSocketManager(
             base_url=WS_URL,
             account_id=ACCOUNT_ID,
             stark_pri_key=STARK_PRIVATE_KEY,
-            signing_adapter=signing_adapter
+            signing_adapter=STARKEX_SIGNING_ADAPTER
         )
 
         # Store test data

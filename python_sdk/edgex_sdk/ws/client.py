@@ -10,7 +10,6 @@ import websocket
 import sha3
 
 from ..internal.signing_adapter import SigningAdapter
-from ..internal.mock_signing_adapter import MockSigningAdapter
 
 from ..internal.client import Client as InternalClient
 
@@ -33,8 +32,10 @@ class Client:
         self.account_id = account_id
         self.stark_pri_key = stark_pri_key
 
-        # Use the provided signing adapter or create a mock one
-        self.signing_adapter = signing_adapter or MockSigningAdapter()
+        # Use the provided signing adapter (required)
+        if signing_adapter is None:
+            raise ValueError("signing_adapter is required")
+        self.signing_adapter = signing_adapter
 
         self.conn = None
         self.handlers = {}
