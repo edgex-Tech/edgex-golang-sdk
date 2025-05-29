@@ -10,6 +10,7 @@ import hashlib
 import math
 import os
 import random
+import secrets
 from typing import Dict, List, Optional, Tuple, Union
 
 from ecdsa.rfc6979 import generate_k
@@ -214,13 +215,8 @@ class StarkExSigningAdapter(SigningAdapter):
         # and there is a negligible probability a drawn k cannot be used for signing.
         # This is why we have this loop.
         while True:
-            k = self._generate_k_rfc6979(msg_hash, priv_key, seed)
-
-            # Update seed for next iteration in case the value of k is bad.
-            if seed is None:
-                seed = 1
-            else:
-                seed += 1
+            # Use random nonce generation (non-deterministic) like the Go SDK
+            k = secrets.randbelow(EC_ORDER - 1) + 1
 
             # Cannot fail because 0 < k < EC_ORDER and EC_ORDER is prime.
             x = self._ec_mult(k, EC_GEN)[0]
