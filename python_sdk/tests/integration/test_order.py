@@ -55,14 +55,14 @@ class TestOrderAPI(BaseIntegrationTest):
 
         # Check data
         data = orders.get("data", {})
-        self.assertIn("list", data)
-        self.assertIsInstance(data["list"], list)
+        self.assertIn("dataList", data)
+        self.assertIsInstance(data["dataList"], list)
 
         # Store active orders for other tests
-        self.__class__.test_data["active_orders"] = data.get("list", [])
+        self.__class__.test_data["active_orders"] = data.get("dataList", [])
 
         # Log order count
-        logger.info(f"Found {len(data.get('list', []))} active orders")
+        logger.info(f"Found {len(data.get('dataList', []))} active orders")
 
     def test_get_order_fill_transactions(self):
         """Test get_order_fill_transactions method."""
@@ -79,11 +79,11 @@ class TestOrderAPI(BaseIntegrationTest):
 
         # Check data
         data = transactions.get("data", {})
-        self.assertIn("list", data)
-        self.assertIsInstance(data["list"], list)
+        self.assertIn("dataList", data)
+        self.assertIsInstance(data["dataList"], list)
 
         # Log transaction count
-        logger.info(f"Found {len(data.get('list', []))} order fill transactions")
+        logger.info(f"Found {len(data.get('dataList', []))} order fill transactions")
 
     @unittest.skip("Skipping order creation to avoid actual orders")
     def test_create_and_cancel_order(self):

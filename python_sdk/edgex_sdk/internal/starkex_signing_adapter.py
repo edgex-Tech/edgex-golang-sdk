@@ -59,7 +59,7 @@ class StarkExSigningAdapter(SigningAdapter):
         msg_hash_int = int.from_bytes(message_hash, byteorder='big')
 
         # Ensure the message hash is in the valid range
-        # Use the same modulus as the Golang SDK
+        # Use the same modulus as the Golang SDK (EC_ORDER, which is starkcurve.N)
         msg_hash_int = msg_hash_int % EC_ORDER
 
         # Convert private key to integer
@@ -133,8 +133,8 @@ class StarkExSigningAdapter(SigningAdapter):
             msg_hash_int = int.from_bytes(message_hash, byteorder='big')
 
             # Ensure the message hash is in the valid range
-            # For testing purposes, we'll just take the modulus
-            msg_hash_int = msg_hash_int % (2**N_ELEMENT_BITS_ECDSA)
+            # Use the same modulus as the sign method (EC_ORDER)
+            msg_hash_int = msg_hash_int % EC_ORDER
 
             # Convert signature components to integers
             r_int = int(signature[0], 16)

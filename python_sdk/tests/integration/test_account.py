@@ -41,19 +41,23 @@ class TestAccountAPI(BaseIntegrationTest):
         # Check response
         self.assertResponseSuccess(positions)
 
-        # Check data
-        data = positions.get("data", [])
-        self.assertIsInstance(data, list)
+        # Check data (positions API returns same format as account asset)
+        data = positions.get("data", {})
+        self.assertIsInstance(data, dict)
+
+        # Check position asset list
+        position_assets = data.get("positionAssetList", [])
+        self.assertIsInstance(position_assets, list)
 
         # Store positions for other tests
-        self.__class__.test_data["positions"] = data
+        self.__class__.test_data["positions"] = position_assets
 
         # Log position count
-        logger.info(f"Found {len(data)} positions")
+        logger.info(f"Found {len(position_assets)} position assets")
 
         # Log position details
-        for position in data:
-            logger.info(f"Position: {position.get('contractId')} - {position.get('size')}")
+        for position in position_assets:
+            logger.info(f"Position: {position.get('contractId')} - {position.get('positionValue')}")
 
     def test_get_position_transaction_page(self):
         """Test get_position_transaction_page method."""
@@ -70,11 +74,11 @@ class TestAccountAPI(BaseIntegrationTest):
 
         # Check data
         data = transactions.get("data", {})
-        self.assertIn("list", data)
-        self.assertIsInstance(data["list"], list)
+        self.assertIn("dataList", data)
+        self.assertIsInstance(data["dataList"], list)
 
         # Log transaction count
-        logger.info(f"Found {len(data.get('list', []))} position transactions")
+        logger.info(f"Found {len(data.get('dataList', []))} position transactions")
 
     def test_get_collateral_transaction_page(self):
         """Test get_collateral_transaction_page method."""
@@ -91,11 +95,11 @@ class TestAccountAPI(BaseIntegrationTest):
 
         # Check data
         data = transactions.get("data", {})
-        self.assertIn("list", data)
-        self.assertIsInstance(data["list"], list)
+        self.assertIn("dataList", data)
+        self.assertIsInstance(data["dataList"], list)
 
         # Log transaction count
-        logger.info(f"Found {len(data.get('list', []))} collateral transactions")
+        logger.info(f"Found {len(data.get('dataList', []))} collateral transactions")
 
     def test_get_account_by_id(self):
         """Test get_account_by_id method."""
@@ -109,9 +113,9 @@ class TestAccountAPI(BaseIntegrationTest):
         data = account.get("data", {})
         self.assertIsInstance(data, dict)
 
-        # Check account ID
-        self.assertIn("accountId", data)
-        self.assertEqual(data["accountId"], str(self.client.internal_client.get_account_id()))
+        # Check account ID (field is called "id" in response)
+        self.assertIn("id", data)
+        self.assertEqual(data["id"], str(self.client.internal_client.get_account_id()))
 
         # Log account details
         logger.info(f"Account details: {data}")

@@ -32,7 +32,14 @@ class RequestInterceptor:
         request.headers["X-edgeX-Api-Timestamp"] = str(timestamp)
 
         # Generate signature content
-        path = request.url.replace(self.base_url, "")
+        full_path = request.url.replace(self.base_url, "")
+
+        # Split path and query
+        if '?' in full_path:
+            path, query = full_path.split('?', 1)
+        else:
+            path = full_path
+            query = ""
 
         if request.body:
             # Read body
@@ -48,8 +55,8 @@ class RequestInterceptor:
             sign_content = f"{timestamp}{request.method}{path}{body_str}"
         else:
             # For requests without body, use query parameters if present
-            if request.url.find('?') != -1:
-                query = request.url.split('?')[1]
+            if query:
+                # Sort query parameters as strings (matching Go SDK exactly)
                 params = sorted(query.split('&'))
                 sign_content = f"{timestamp}{request.method}{path}{'&'.join(params)}"
             else:
@@ -90,8 +97,21 @@ class Client:
 
         # Create session with interceptor
         session = requests.Session()
-        session.mount(base_url, requests.adapters.HTTPAdapter())
-        session.hooks["request"] = [RequestInterceptor(self.internal_client, base_url)]
+
+        # Create a custom adapter that adds authentication
+        class AuthHTTPAdapter(requests.adapters.HTTPAdapter):
+            def __init__(self, internal_client, base_url):
+                super().__init__()
+                self.internal_client = internal_client
+                self.base_url = base_url
+
+            def send(self, request, **kwargs):
+                # Add authentication headers
+                interceptor = RequestInterceptor(self.internal_client, self.base_url)
+                request = interceptor(request)
+                return super().send(request, **kwargs)
+
+        session.mount(base_url, AuthHTTPAdapter(self.internal_client, base_url))
 
         # Initialize API clients
         self.order = OrderClient(self.internal_client, session)

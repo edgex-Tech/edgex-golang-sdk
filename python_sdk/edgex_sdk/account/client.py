@@ -123,31 +123,17 @@ class Client:
         """
         Get the account positions.
 
+        Note: This calls the same endpoint as get_account_asset, which returns both
+        collateral and position data. The position data is in the 'positionAssetList' field.
+
         Returns:
-            Dict[str, Any]: The account positions
+            Dict[str, Any]: The account positions (same as account asset response)
 
         Raises:
             ValueError: If the request fails
         """
-        url = f"{self.base_url}/api/v1/private/account/getPositionByContractId"
-        params = {
-            "accountId": str(self.internal_client.get_account_id())
-        }
-
-        response = self.session.get(url, params=params)
-
-        if response.status_code != 200:
-            raise ValueError(f"request failed with status code: {response.status_code}")
-
-        resp_data = response.json()
-
-        if resp_data.get("code") != ResponseCode.SUCCESS:
-            error_param = resp_data.get("errorParam")
-            if error_param:
-                raise ValueError(f"request failed with error params: {error_param}")
-            raise ValueError(f"request failed with code: {resp_data.get('code')}")
-
-        return resp_data
+        # Use the same endpoint as get_account_asset (matching Go SDK behavior)
+        return await self.get_account_asset()
 
     async def get_position_transaction_page(self, params: GetPositionTransactionPageParams) -> Dict[str, Any]:
         """

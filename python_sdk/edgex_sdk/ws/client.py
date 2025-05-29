@@ -64,8 +64,8 @@ class Client:
             # Add timestamp header
             headers["X-edgeX-Api-Timestamp"] = str(timestamp)
 
-            # Generate signature content
-            path = f"/api/v1/private/ws?accountId={self.account_id}"
+            # Generate signature content (no ? separator, matching Go SDK)
+            path = f"/api/v1/private/wsaccountId={self.account_id}"
             sign_content = f"{timestamp}GET{path}"
 
             # Hash the content
