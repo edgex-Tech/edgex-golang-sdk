@@ -14,7 +14,7 @@ from tests.integration.config import BASE_URL, WS_URL
 logger = logging.getLogger(__name__)
 
 # Test contract ID
-TEST_CONTRACT_ID = "10000001"  # BTCUSDT contract
+TEST_CONTRACT_ID = "10000004"  # Contract ID provided
 
 
 class TestPublicWebSocketAPI(BasePublicEndpointTest):

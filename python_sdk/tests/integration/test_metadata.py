@@ -43,11 +43,15 @@ class TestMetadataAPI(BaseIntegrationTest):
 
         # Check data
         data = server_time.get("data", {})
-        self.assertIn("serverTime", data)
-        self.assertIsInstance(data["serverTime"], int)
-
-        # Log server time
-        logger.info(f"Server time: {data['serverTime']}")
+        # The API returns 'timeMillis' instead of 'serverTime'
+        if "timeMillis" in data:
+            self.assertIsInstance(data["timeMillis"], (int, str))
+            logger.info(f"Server time: {data['timeMillis']}")
+        elif "serverTime" in data:
+            self.assertIsInstance(data["serverTime"], (int, str))
+            logger.info(f"Server time: {data['serverTime']}")
+        else:
+            self.fail("Neither 'timeMillis' nor 'serverTime' found in response data")
 
     def test_contract_exists(self):
         """Test that the test contract exists in the contract list."""

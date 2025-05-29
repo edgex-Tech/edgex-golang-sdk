@@ -370,8 +370,8 @@ class Client:
         Raises:
             ValueError: If the request fails
         """
-        # Build query parameters
-        query_params = {
+        # Build request body (API expects POST with JSON body)
+        data = {
             "accountId": str(self.internal_client.get_account_id()),
             "contractId": contract_id,
             "price": str(price)
@@ -379,7 +379,7 @@ class Client:
 
         # Execute request
         url = f"{self.base_url}/api/v1/private/order/getMaxCreateOrderSize"
-        response = self.session.get(url, params=query_params)
+        response = self.session.post(url, json=data)
 
         if response.status_code != 200:
             raise ValueError(f"request failed with status code: {response.status_code}")

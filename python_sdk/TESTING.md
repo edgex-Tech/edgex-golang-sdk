@@ -244,6 +244,14 @@ python run_integration_tests.py
 - `EDGEX_ACCOUNT_ID`: Your EdgeX account ID
 - `EDGEX_STARK_PRIVATE_KEY`: Your Stark private key
 
+Example:
+```bash
+export EDGEX_ACCOUNT_ID="your_account_id_here"
+export EDGEX_STARK_PRIVATE_KEY="your_stark_private_key_here"
+```
+
+**⚠️ SECURITY WARNING**: Never commit these credentials to version control. Always use environment variables or secure credential management systems.
+
 ### Running Public Endpoint Tests
 
 To run only the tests for public endpoints (which don't require authentication):

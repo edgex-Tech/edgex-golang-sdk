@@ -10,7 +10,7 @@ from tests.integration.public.base_test import BasePublicEndpointTest
 logger = logging.getLogger(__name__)
 
 # Test contract ID
-TEST_CONTRACT_ID = "10000001"  # BTCUSDT contract
+TEST_CONTRACT_ID = "10000004"  # Contract ID provided
 
 
 class TestPublicQuoteAPI(BasePublicEndpointTest):
