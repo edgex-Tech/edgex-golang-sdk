@@ -73,6 +73,8 @@ class RequestInterceptor:
         sig_str = f"{sig.r}{sig.s}"
         request.headers["X-edgeX-Api-Signature"] = sig_str
 
+
+
         return request
 
 

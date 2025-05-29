@@ -128,8 +128,10 @@ class Client:
         # Sign the order
         sig = self.internal_client.sign(sig_hash)
 
-        # Convert signature to string
-        sig_str = f"{sig.r}{sig.s}{sig.v}"
+        # Convert signature to string (StarkEx uses only r and s, no v component)
+        sig_str = f"{sig.r}{sig.s}"
+
+
 
         # Create order request
         account_id = str(self.internal_client.get_account_id())
