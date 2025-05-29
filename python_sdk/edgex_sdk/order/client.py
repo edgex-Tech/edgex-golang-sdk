@@ -111,11 +111,12 @@ class Client:
 
         # Calculate signature using asset IDs from metadata
         expire_time_unix = l2_expire_time // (60 * 60 * 1000)
+
         sig_hash = self.internal_client.calc_limit_order_hash(
             contract.get("starkExSyntheticAssetId", ""),
             collateral_coin.get("starkExAssetId", ""),
             collateral_coin.get("starkExAssetId", ""),
-            params.side == "BUY",
+            params.side.value == "BUY",
             amount_synthetic,
             amount_collateral,
             amount_fee,
@@ -145,9 +146,9 @@ class Client:
             "contractId": params.contract_id,
             "price": price_str,
             "size": params.size,
-            "type": str(params.type),
-            "timeInForce": params.time_in_force,
-            "side": params.side,
+            "type": params.type.value,  # Use .value to get the string value
+            "timeInForce": params.time_in_force.value,  # Use .value to get the string value
+            "side": params.side.value,  # Use .value to get the string value
             "l2Signature": sig_str,
             "l2Nonce": nonce_str,
             "l2ExpireTime": l2_expire_time_str,
