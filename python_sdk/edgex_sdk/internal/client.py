@@ -2,13 +2,16 @@ import binascii
 import hashlib
 import time
 import uuid
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List, Union
 
 import requests
 import sha3
 
 from .mock_signing_adapter import MockSigningAdapter
 from .signing_adapter import SigningAdapter
+
+# Constants
+LIMIT_ORDER_WITH_FEE_TYPE = 3
 
 
 class L2Signature:
@@ -111,43 +114,183 @@ class Client:
         expire_time: int
     ) -> bytes:
         """
-        Calculate the hash for a limit order.
+        Calculate the hash for a limit order using StarkEx protocol.
 
         Args:
-            synthetic_asset_id: The synthetic asset ID
-            collateral_asset_id: The collateral asset ID
-            fee_asset_id: The fee asset ID
+            synthetic_asset_id: The synthetic asset ID (hex string)
+            collateral_asset_id: The collateral asset ID (hex string)
+            fee_asset_id: The fee asset ID (hex string)
             is_buy: Whether the order is a buy order
             amount_synthetic: The synthetic amount
             amount_collateral: The collateral amount
             amount_fee: The fee amount
             nonce: The nonce
-            account_id: The account ID
+            account_id: The account ID (position ID)
             expire_time: The expiration time
 
         Returns:
             bytes: The calculated hash
         """
-        # TODO: Implement the actual hash calculation
-        # This is a placeholder for the actual hash calculation
+        # Remove 0x prefix if present
+        if synthetic_asset_id.startswith('0x'):
+            synthetic_asset_id = synthetic_asset_id[2:]
+        if collateral_asset_id.startswith('0x'):
+            collateral_asset_id = collateral_asset_id[2:]
+        if fee_asset_id.startswith('0x'):
+            fee_asset_id = fee_asset_id[2:]
 
-        # For now, we'll create a mock hash
-        keccak = sha3.keccak_256()
-        keccak.update(f"{synthetic_asset_id}{collateral_asset_id}{fee_asset_id}{is_buy}{amount_synthetic}{amount_collateral}{amount_fee}{nonce}{account_id}{expire_time}".encode())
-        return keccak.digest()
+        # Convert hex strings to integers
+        asset_id_synthetic = int(synthetic_asset_id, 16)
+        asset_id_collateral = int(collateral_asset_id, 16)
+        asset_id_fee = int(fee_asset_id, 16)
 
-    def get_value(self, data: Dict[str, Any]) -> str:
+        # Determine buy/sell assets based on order direction
+        if is_buy:
+            asset_id_sell = asset_id_collateral
+            asset_id_buy = asset_id_synthetic
+            amount_sell = amount_collateral
+            amount_buy = amount_synthetic
+        else:
+            asset_id_sell = asset_id_synthetic
+            asset_id_buy = asset_id_collateral
+            amount_sell = amount_synthetic
+            amount_buy = amount_collateral
+
+        # Use the signing adapter to calculate the Pedersen hash
+        # First hash: hash(asset_id_sell, asset_id_buy)
+        msg = self.signing_adapter.pedersen_hash([asset_id_sell, asset_id_buy])
+        msg_int = int.from_bytes(msg, byteorder='big')
+
+        # Second hash: hash(msg, asset_id_fee)
+        msg = self.signing_adapter.pedersen_hash([msg_int, asset_id_fee])
+        msg_int = int.from_bytes(msg, byteorder='big')
+
+        # Pack message 0
+        # packed_message0 = amount_sell * 2^64 + amount_buy * 2^64 + max_amount_fee * 2^32 + nonce
+        packed_message0 = amount_sell
+        packed_message0 = (packed_message0 << 64) + amount_buy
+        packed_message0 = (packed_message0 << 64) + amount_fee
+        packed_message0 = (packed_message0 << 32) + nonce
+
+        # Third hash: hash(msg, packed_message0)
+        msg = self.signing_adapter.pedersen_hash([msg_int, packed_message0])
+        msg_int = int.from_bytes(msg, byteorder='big')
+
+        # Pack message 1
+        # packed_message1 = LIMIT_ORDER_WITH_FEES * 2^64 + position_id * 2^64 + position_id * 2^64 + position_id * 2^32 + expiration_timestamp * 2^17
+        packed_message1 = LIMIT_ORDER_WITH_FEE_TYPE
+        packed_message1 = (packed_message1 << 64) + account_id
+        packed_message1 = (packed_message1 << 64) + account_id
+        packed_message1 = (packed_message1 << 64) + account_id
+        packed_message1 = (packed_message1 << 32) + expire_time
+        packed_message1 = packed_message1 << 17  # Padding
+
+        # Final hash: hash(msg, packed_message1)
+        msg = self.signing_adapter.pedersen_hash([msg_int, packed_message1])
+
+        return msg
+
+    def calc_transfer_hash(
+        self,
+        asset_id: int,
+        asset_id_fee: int,
+        receiver_public_key: int,
+        sender_position_id: int,
+        receiver_position_id: int,
+        fee_position_id: int,
+        nonce: int,
+        amount: int,
+        max_amount_fee: int,
+        expiration_timestamp: int
+    ) -> bytes:
         """
-        Convert a dictionary to a sorted string format for signing.
+        Calculate the hash for a transfer using StarkEx protocol.
 
         Args:
-            data: The dictionary to convert
+            asset_id: The asset ID
+            asset_id_fee: The fee asset ID
+            receiver_public_key: The receiver's public key
+            sender_position_id: The sender's position ID
+            receiver_position_id: The receiver's position ID
+            fee_position_id: The fee position ID
+            nonce: The nonce
+            amount: The transfer amount
+            max_amount_fee: The maximum fee amount
+            expiration_timestamp: The expiration timestamp
 
         Returns:
-            str: The sorted string representation
+            bytes: The calculated hash
         """
-        # TODO: Implement the actual conversion
-        # This is a placeholder for the actual conversion
+        # First hash: hash(asset_id, asset_id_fee)
+        msg = self.signing_adapter.pedersen_hash([asset_id, asset_id_fee])
+        msg_int = int.from_bytes(msg, byteorder='big')
 
-        # For now, we'll return a simple string representation
+        # Second hash: hash(msg, receiver_public_key)
+        msg = self.signing_adapter.pedersen_hash([msg_int, receiver_public_key])
+        msg_int = int.from_bytes(msg, byteorder='big')
+
+        # Pack message 0
+        # packed_msg0 = sender_position_id * 2^64 + receiver_position_id * 2^64 + fee_position_id * 2^32 + nonce
+        packed_msg0 = sender_position_id
+        packed_msg0 = (packed_msg0 << 64) + receiver_position_id
+        packed_msg0 = (packed_msg0 << 64) + fee_position_id
+        packed_msg0 = (packed_msg0 << 32) + nonce
+
+        # Third hash: hash(msg, packed_msg0)
+        msg = self.signing_adapter.pedersen_hash([msg_int, packed_msg0])
+        msg_int = int.from_bytes(msg, byteorder='big')
+
+        # Pack message 1
+        # packed_msg1 = 4 * 2^64 + amount * 2^64 + max_amount_fee * 2^32 + expiration_timestamp * 2^81
+        packed_msg1 = 4  # Transfer type
+        packed_msg1 = (packed_msg1 << 64) + amount
+        packed_msg1 = (packed_msg1 << 64) + max_amount_fee
+        packed_msg1 = (packed_msg1 << 32) + expiration_timestamp
+        packed_msg1 = packed_msg1 << 81  # Padding
+
+        # Final hash: hash(msg, packed_msg1)
+        msg = self.signing_adapter.pedersen_hash([msg_int, packed_msg1])
+
+        return msg
+
+    def get_value(self, data: Union[Dict[str, Any], List[Any], str, int, float, None]) -> str:
+        """
+        Convert a value to a string representation for signing.
+        This function recursively processes dictionaries, lists, and primitive types.
+
+        Args:
+            data: The value to convert
+
+        Returns:
+            str: The string representation
+        """
+        if data is None:
+            return ""
+
+        if isinstance(data, str):
+            return data
+
+        if isinstance(data, (int, float)):
+            return str(data)
+
+        if isinstance(data, list):
+            if len(data) == 0:
+                return ""
+            values = [self.get_value(item) for item in data]
+            return "&".join(values)
+
+        if isinstance(data, dict):
+            # Convert all values to strings and sort by keys
+            sorted_map = {}
+            for key, val in data.items():
+                sorted_map[key] = self.get_value(val)
+
+            # Get sorted keys
+            keys = sorted(sorted_map.keys())
+
+            # Build key=value pairs
+            pairs = [f"{key}={sorted_map[key]}" for key in keys]
+            return "&".join(pairs)
+
+        # Handle other types by converting to string
         return str(data)

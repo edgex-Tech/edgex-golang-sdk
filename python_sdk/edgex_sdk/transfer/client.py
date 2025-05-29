@@ -195,7 +195,13 @@ class Client:
             data["memo"] = params.memo
 
         # TODO: Implement signature calculation for transfer out
-        # This would require additional logic similar to the order creation
+        # This would require:
+        # 1. Asset ID from metadata based on coin_id
+        # 2. Receiver public key from address
+        # 3. Position IDs for sender, receiver, and fee
+        # 4. Proper expiration time calculation
+        # 5. Call to calc_transfer_hash and sign the result
+        # For now, the API call is made without signature (may fail on actual server)
 
         response = self.session.post(url, json=data)
 

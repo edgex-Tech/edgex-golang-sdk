@@ -104,10 +104,10 @@ class TestInternalClient(unittest.TestCase):
 
     def test_calc_limit_order_hash(self):
         """Test calc_limit_order_hash method."""
-        # Test parameters
-        synthetic_asset_id = "synthetic_asset_id"
-        collateral_asset_id = "collateral_asset_id"
-        fee_asset_id = "fee_asset_id"
+        # Test parameters (using valid hex strings)
+        synthetic_asset_id = "0x1234567890abcdef1234567890abcdef12345678"
+        collateral_asset_id = "0xabcdef1234567890abcdef1234567890abcdef12"
+        fee_asset_id = "0xfedcba0987654321fedcba0987654321fedcba09"
         is_buy = True
         amount_synthetic = 1000
         amount_collateral = 2000

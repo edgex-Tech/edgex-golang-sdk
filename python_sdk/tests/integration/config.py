@@ -8,7 +8,7 @@ from edgex_sdk.internal.starkex_signing_adapter import StarkExSigningAdapter
 
 # Load environment variables
 BASE_URL = os.getenv("EDGEX_BASE_URL", "https://testnet.edgex.exchange")
-WS_URL = os.getenv("EDGEX_WS_URL", "wss://testnet.edgex.exchange")
+WS_URL = os.getenv("EDGEX_WS_URL", "wss://quote-testnet.edgex.exchange")
 ACCOUNT_ID = int(os.getenv("EDGEX_ACCOUNT_ID", "0"))
 STARK_PRIVATE_KEY = os.getenv("EDGEX_STARK_PRIVATE_KEY", "")
 

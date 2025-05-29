@@ -13,7 +13,7 @@ setup(
         "pydantic>=1.8.0",
         "python-dotenv>=0.15.0",
         "pysha3>=1.0.2",
-        "decimal>=1.70",
+        "ecdsa>=0.17.0",
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",

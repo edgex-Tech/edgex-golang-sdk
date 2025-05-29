@@ -143,7 +143,7 @@ from edgex_sdk import WebSocketManager
 
 # Create a WebSocket manager
 ws_manager = WebSocketManager(
-    base_url="wss://testnet.edgex.exchange",
+    base_url="wss://quote-testnet.edgex.exchange",
     account_id=12345,
     stark_pri_key="your-stark-private-key"
 )
