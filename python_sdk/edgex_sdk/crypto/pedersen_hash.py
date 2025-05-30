@@ -9,12 +9,12 @@ from typing import List, Tuple, Union
 
 # Handle both relative and absolute imports
 try:
-    from .constants_full import (
+    from .constants import (
         FIELD_PRIME, ALPHA, BETA, N_ELEMENT_BITS_HASH,
         SHIFT_POINT, CONSTANT_POINTS
     )
 except ImportError:
-    from constants_full import (
+    from constants import (
         FIELD_PRIME, ALPHA, BETA, N_ELEMENT_BITS_HASH,
         SHIFT_POINT, CONSTANT_POINTS
     )
