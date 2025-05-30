@@ -5,7 +5,7 @@ import uuid
 from typing import Dict, Any, Optional, Tuple, List, Union
 
 import requests
-import sha3
+from Crypto.Hash import keccak
 
 from .signing_adapter import SigningAdapter
 

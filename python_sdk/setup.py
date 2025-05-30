@@ -12,7 +12,7 @@ setup(
         "websocket-client>=1.0.0",
         "pydantic>=1.8.0",
         "python-dotenv>=0.15.0",
-        "pysha3>=1.0.2",
+        "pycryptodome>=3.15.0",
         "ecdsa>=0.17.0",
     ],
     classifiers=[

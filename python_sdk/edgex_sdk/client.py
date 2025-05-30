@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional, List, Union
 from decimal import Decimal
 
 import requests
-import sha3
+from Crypto.Hash import keccak
 
 from .internal.client import Client as InternalClient
 from .internal.signing_adapter import SigningAdapter
@@ -63,9 +63,9 @@ class RequestInterceptor:
                 sign_content = f"{timestamp}{request.method}{path}"
 
         # Sign the content
-        keccak = sha3.keccak_256()
-        keccak.update(sign_content.encode())
-        content_hash = keccak.digest()
+        keccak_hash = keccak.new(digest_bits=256)
+        keccak_hash.update(sign_content.encode())
+        content_hash = keccak_hash.digest()
 
         sig = self.internal_client.sign(content_hash)
 

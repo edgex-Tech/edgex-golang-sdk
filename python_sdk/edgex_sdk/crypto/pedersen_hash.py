@@ -9,12 +9,12 @@ from typing import List, Tuple, Union
 
 # Handle both relative and absolute imports
 try:
-    from .constants import (
+    from .constants_full import (
         FIELD_PRIME, ALPHA, BETA, N_ELEMENT_BITS_HASH,
         SHIFT_POINT, CONSTANT_POINTS
     )
 except ImportError:
-    from constants import (
+    from constants_full import (
         FIELD_PRIME, ALPHA, BETA, N_ELEMENT_BITS_HASH,
         SHIFT_POINT, CONSTANT_POINTS
     )
@@ -112,96 +112,51 @@ def _ec_mult(m: int, p: Tuple[int, int]) -> Tuple[int, int]:
 def pedersen_hash_as_point(*elements: int) -> Tuple[int, int]:
     """
     Calculate the Pedersen hash of a list of integers and return the full EC point.
-    
-    This is the core implementation following StarkWare's specification:
+
+    This is the full implementation following StarkWare's specification:
     For each element, iterate through its 252 bits and add corresponding
     constant points based on the bit values.
-    
+
     Args:
         *elements: Variable number of integers to hash
-        
+
     Returns:
         Tuple[int, int]: The resulting EC point as (x, y) coordinates
-        
+
     Raises:
         ValueError: If any element is out of range or if there are insufficient constant points
     """
     # Start with the shift point
     point = tuple(SHIFT_POINT)
-    
+
     for i, element in enumerate(elements):
         # Validate element is in valid range
         if not (0 <= element < FIELD_PRIME):
             raise ValueError(f"Element {element} is out of range [0, {FIELD_PRIME})")
-        
+
         # Calculate the starting index for this element's constant points
         start_idx = 2 + i * N_ELEMENT_BITS_HASH
-        
+
         # Check if we have enough constant points
         if start_idx + N_ELEMENT_BITS_HASH > len(CONSTANT_POINTS):
-            # For this implementation, we'll use a simplified approach for elements
-            # beyond what our constant points support
-            if i == 0:
-                # For the first element, we can use the available points
-                available_points = len(CONSTANT_POINTS) - 2
-                for j in range(min(available_points, N_ELEMENT_BITS_HASH)):
-                    if start_idx + j < len(CONSTANT_POINTS):
-                        pt = tuple(CONSTANT_POINTS[start_idx + j])
-                        # Check for unhashable input (same x coordinate)
-                        if point[0] == pt[0]:
-                            raise ValueError('Unhashable input: point collision detected')
-                        
-                        if element & 1:
-                            point = _ec_add(point, pt)
-                        element >>= 1
-                
-                # For remaining bits, use a deterministic but simplified approach
-                while element > 0:
-                    if element & 1:
-                        # Use a derived point based on the bit position
-                        # This is not cryptographically equivalent to the full implementation
-                        # but provides a deterministic result
-                        derived_x = (point[0] + j + 1) % FIELD_PRIME
-                        derived_y = (point[1] + j + 2) % FIELD_PRIME
-                        # Ensure the derived point is on the curve (simplified)
-                        derived_point = (derived_x, derived_y)
-                        try:
-                            point = _ec_add(point, derived_point)
-                        except ValueError:
-                            # If points collide, skip this bit
-                            pass
-                    element >>= 1
-                    j += 1
-            else:
-                # For additional elements beyond the first, use a simplified hash
-                # This is not the full Pedersen hash but provides deterministic results
-                element_contribution_x = (element * (i + 1)) % FIELD_PRIME
-                element_contribution_y = (element * (i + 2)) % FIELD_PRIME
-                contribution_point = (element_contribution_x, element_contribution_y)
-                try:
-                    point = _ec_add(point, contribution_point)
-                except ValueError:
-                    # If points collide, use an alternative
-                    alt_x = (element_contribution_x + 1) % FIELD_PRIME
-                    alt_y = (element_contribution_y + 1) % FIELD_PRIME
-                    point = _ec_add(point, (alt_x, alt_y))
-        else:
-            # Full implementation for elements with sufficient constant points
-            for j in range(N_ELEMENT_BITS_HASH):
-                pt = tuple(CONSTANT_POINTS[start_idx + j])
-                
-                # Check for unhashable input (same x coordinate)
-                if point[0] == pt[0]:
-                    raise ValueError('Unhashable input: point collision detected')
-                
-                if element & 1:
-                    point = _ec_add(point, pt)
-                element >>= 1
-            
-            # Ensure all bits have been processed
-            if element != 0:
-                raise ValueError(f"Element too large: remaining bits {element}")
-    
+            raise ValueError(f"Insufficient constant points for element {i}. Need {start_idx + N_ELEMENT_BITS_HASH}, have {len(CONSTANT_POINTS)}")
+
+        # Full implementation using all 252 bits
+        for j in range(N_ELEMENT_BITS_HASH):
+            pt = tuple(CONSTANT_POINTS[start_idx + j])
+
+            # Check for unhashable input (same x coordinate)
+            if point[0] == pt[0]:
+                raise ValueError('Unhashable input: point collision detected')
+
+            if element & 1:
+                point = _ec_add(point, pt)
+            element >>= 1
+
+        # Ensure all bits have been processed
+        if element != 0:
+            raise ValueError(f"Element too large: remaining bits {element}")
+
     return point
 
 

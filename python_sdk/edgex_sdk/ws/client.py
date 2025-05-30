@@ -7,7 +7,7 @@ import time
 from typing import Dict, Any, List, Optional, Callable, Union
 
 import websocket
-import sha3
+from Crypto.Hash import keccak
 
 from ..internal.signing_adapter import SigningAdapter
 
@@ -70,9 +70,9 @@ class Client:
             sign_content = f"{timestamp}GET{path}"
 
             # Hash the content
-            keccak = sha3.keccak_256()
-            keccak.update(sign_content.encode())
-            message_hash = keccak.digest()
+            keccak_hash = keccak.new(digest_bits=256)
+            keccak_hash.update(sign_content.encode())
+            message_hash = keccak_hash.digest()
 
             # Sign the message using the signing adapter
             try:

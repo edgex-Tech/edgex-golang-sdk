@@ -24,7 +24,37 @@ pip install edgex-python-sdk
 
 ```bash
 git clone https://github.com/edgex-Tech/edgex-python-sdk.git
-cd edgex-python-sdk
+cd edgex-python-sdk/python_sdk
+pip install -e .
+```
+
+### Using Requirements Files
+
+For production use:
+```bash
+pip install -r requirements.txt
+```
+
+For development (includes testing and linting tools):
+```bash
+pip install -r requirements-dev.txt
+```
+
+### Virtual Environment (Recommended)
+
+It's recommended to use a virtual environment:
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Or install in development mode
 pip install -e .
 ```
 
