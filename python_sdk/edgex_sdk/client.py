@@ -8,6 +8,7 @@ from Crypto.Hash import keccak
 
 from .internal.client import Client as InternalClient
 from .internal.signing_adapter import SigningAdapter
+from .internal.starkex_signing_adapter import StarkExSigningAdapter
 from .account.client import Client as AccountClient
 from .asset.client import Client as AssetClient
 from .funding.client import Client as FundingClient
@@ -89,7 +90,12 @@ class Client:
             base_url: Base URL for API endpoints
             account_id: Account ID for authentication
             stark_private_key: Stark private key for signing
+            signing_adapter: Optional signing adapter (defaults to StarkExSigningAdapter)
         """
+        # Use StarkExSigningAdapter as default if none provided
+        if signing_adapter is None:
+            signing_adapter = StarkExSigningAdapter()
+
         self.internal_client = InternalClient(
             base_url=base_url,
             account_id=account_id,

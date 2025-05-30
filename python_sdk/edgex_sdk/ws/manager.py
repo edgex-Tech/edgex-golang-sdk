@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Any, List, Optional, Callable
 
 from ..internal.signing_adapter import SigningAdapter
+from ..internal.starkex_signing_adapter import StarkExSigningAdapter
 from .client import Client
 
 
@@ -16,10 +17,15 @@ class Manager:
             base_url: Base WebSocket URL
             account_id: Account ID for authentication
             stark_pri_key: Stark private key for signing
+            signing_adapter: Optional signing adapter (defaults to StarkExSigningAdapter)
         """
         self.base_url = base_url
         self.account_id = account_id
         self.stark_pri_key = stark_pri_key
+
+        # Use StarkExSigningAdapter as default if none provided
+        if signing_adapter is None:
+            signing_adapter = StarkExSigningAdapter()
         self.signing_adapter = signing_adapter
 
         self.public_client = None

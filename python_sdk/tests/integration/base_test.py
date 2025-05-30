@@ -31,23 +31,21 @@ class BaseIntegrationTest(unittest.TestCase):
                 f"Skipping integration tests because the following environment variables are not set: {', '.join(missing_vars)}"
             )
 
-        # Create client with StarkEx signing adapter
+        # Create client (uses StarkEx signing adapter by default)
         cls.client = Client(
             base_url=BASE_URL,
             account_id=ACCOUNT_ID,
-            stark_private_key=STARK_PRIVATE_KEY,
-            signing_adapter=STARKEX_SIGNING_ADAPTER
+            stark_private_key=STARK_PRIVATE_KEY
         )
 
         # Log which signing adapter is being used
-        logger.info("Using StarkEx signing adapter")
+        logger.info("Using StarkEx signing adapter (default)")
 
-        # Create WebSocket manager with StarkEx signing adapter
+        # Create WebSocket manager (uses StarkEx signing adapter by default)
         cls.ws_manager = WebSocketManager(
             base_url=WS_URL,
             account_id=ACCOUNT_ID,
-            stark_pri_key=STARK_PRIVATE_KEY,
-            signing_adapter=STARKEX_SIGNING_ADAPTER
+            stark_pri_key=STARK_PRIVATE_KEY
         )
 
         # Store test data

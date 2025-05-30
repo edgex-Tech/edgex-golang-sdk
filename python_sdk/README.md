@@ -171,7 +171,7 @@ The SDK provides a WebSocket manager for handling real-time data:
 ```python
 from edgex_sdk import WebSocketManager
 
-# Create a WebSocket manager
+# Create a WebSocket manager (uses StarkExSigningAdapter by default)
 ws_manager = WebSocketManager(
     base_url="wss://quote-testnet.edgex.exchange",
     account_id=12345,
@@ -191,15 +191,28 @@ ws_manager.subscribe_ticker("BTC-USDT", ticker_handler)
 
 ## Signing Adapters
 
-The SDK provides a flexible signing mechanism through signing adapters. This allows you to use different implementations for cryptographic operations:
+The SDK provides a flexible signing mechanism through signing adapters. **StarkExSigningAdapter is used by default**, so you don't need to explicitly create one:
+
+```python
+from edgex_sdk import Client
+
+# Create a client (uses StarkExSigningAdapter by default)
+client = Client(
+    base_url="https://testnet.edgex.exchange",
+    account_id=12345,
+    stark_private_key="your-stark-private-key"
+)
+```
+
+If you need to use a custom signing adapter, you can still provide one:
 
 ```python
 from edgex_sdk import Client, StarkExSigningAdapter
 
-# Create a StarkEx signing adapter
+# Create a custom signing adapter (optional)
 signing_adapter = StarkExSigningAdapter()
 
-# Create a client with the signing adapter
+# Create a client with a custom signing adapter
 client = Client(
     base_url="https://testnet.edgex.exchange",
     account_id=12345,
@@ -210,8 +223,8 @@ client = Client(
 
 The SDK includes the following signing adapters:
 
+- **StarkExSigningAdapter** (default): Full implementation using StarkWare cryptographic operations
 - **MockSigningAdapter**: A mock implementation for testing that doesn't perform actual cryptographic operations
-- **StarkExSigningAdapter**: An implementation that uses the StarkWare library for cryptographic operations (requires the `starkware-crypto` package)
 
 You can also create your own signing adapter by implementing the `SigningAdapter` interface.
 
