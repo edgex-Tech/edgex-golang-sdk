@@ -87,12 +87,13 @@ class TestOrderAPI(BaseIntegrationTest):
 
     def test_create_and_cancel_order(self):
         """Test create_order and cancel_order methods."""
-        # Create order parameters with extremely high price to avoid execution
+        # Create order parameters with price below market to avoid execution
         # This tests the order creation/cancellation flow without risk of actual trading
+        # Current market price is around 673, using 640 (5% below) to avoid execution
         params = CreateOrderParams(
             contract_id=TEST_CONTRACT_ID,
             size="0.01",  # Minimum step size
-            price="999999",  # Extremely high price to avoid execution
+            price="640",  # Price below market to avoid execution
             type=OrderType.LIMIT,
             side=OrderSide.BUY,
             time_in_force=TimeInForce.GOOD_TIL_CANCEL
