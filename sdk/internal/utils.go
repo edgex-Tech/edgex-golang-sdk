@@ -138,6 +138,41 @@ func CalcTransferHash(assetID, assetIdFee, receiverPublicKey *big.Int, senderPos
 	return msg
 }
 
+// CalcWithdrawalHash calculates the hash for a withdrawal
+func CalcWithdrawalHash(assetID *big.Int, ethAddress string, positionId, nonce, amount, expirationTimestamp int64) []byte {
+	// Remove ethAddress 0x prefix if exists
+	if len(ethAddress) > 2 && ethAddress[:2] == "0x" {
+		ethAddress = ethAddress[2:]
+	}
+
+	// Part 1: Hash asset ID with ETH address
+	assetIDInt := big.NewInt(0).Set(assetID)
+	ethAddressBN, _ := big.NewInt(0).SetString(ethAddress, 16)
+	part1 := starkcurve.CalcHash([]*big.Int{assetIDInt, ethAddressBN})
+
+	// Part 2: Pack withdrawal data
+	packedWithdrawal := big.NewInt(WithdrawalToAddress) // WITHDRAWAL_PREFIX = 7
+	packedWithdrawal = packedWithdrawal.Lsh(packedWithdrawal, 64)
+	positionIdInt := big.NewInt(positionId)
+	packedWithdrawal = packedWithdrawal.Add(packedWithdrawal, positionIdInt)
+	packedWithdrawal = packedWithdrawal.Lsh(packedWithdrawal, 32)
+	nonceInt := big.NewInt(nonce)
+	packedWithdrawal = packedWithdrawal.Add(packedWithdrawal, nonceInt)
+	packedWithdrawal = packedWithdrawal.Lsh(packedWithdrawal, 64)
+	amountInt := big.NewInt(amount)
+	packedWithdrawal = packedWithdrawal.Add(packedWithdrawal, amountInt)
+	packedWithdrawal = packedWithdrawal.Lsh(packedWithdrawal, 32)
+	expirationInt := big.NewInt(expirationTimestamp)
+	packedWithdrawal = packedWithdrawal.Add(packedWithdrawal, expirationInt)
+	packedWithdrawal = packedWithdrawal.Lsh(packedWithdrawal, 49) // WITHDRAWAL_PADDING_BITS = 49
+
+	// Final hash
+	part1Int := big.NewInt(0).SetBytes(part1)
+	finalHash := starkcurve.CalcHash([]*big.Int{part1Int, packedWithdrawal})
+
+	return finalHash
+}
+
 // JoinStrings joins a slice of strings with commas
 func JoinStrings(strs []string) string {
 	return strings.Join(strs, ",")
