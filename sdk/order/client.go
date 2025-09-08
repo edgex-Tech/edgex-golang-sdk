@@ -93,7 +93,7 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 		return nil, fmt.Errorf("failed to parse fee rate: %w", err)
 	}
 
-	// Calculate fee amount in decimal with ceiling (向上取整)
+	// Calculate fee amount in decimal with ceiling
 	amountFeeDm := valueDm.Mul(feeRate).Ceil()
 	amountFeeStr := amountFeeDm.String()
 
