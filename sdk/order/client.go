@@ -93,8 +93,8 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 		return nil, fmt.Errorf("failed to parse fee rate: %w", err)
 	}
 
-	// Calculate fee amount in decimal with 6 decimal places
-	amountFeeDm := valueDm.Mul(feeRate).Round(6)
+	// Calculate fee amount in decimal with ceiling
+	amountFeeDm := valueDm.Mul(feeRate).Ceil()
 	amountFeeStr := amountFeeDm.String()
 
 	// Convert to the required integer format for the protocol
