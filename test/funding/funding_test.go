@@ -17,7 +17,7 @@ func TestGetFundingRate(t *testing.T) {
 
 	size := int32(10)
 	params := funding.GetFundingRateParams{
-		ContractID: "10000002", // ETHUSDT contract ID
+		ContractID: "20000018", // liquid contract with active market making
 		Size:       &size,
 	}
 	resp, err := client.Funding.GetFundingRate(ctx, params)
@@ -43,7 +43,7 @@ func TestGetLatestFundingRate(t *testing.T) {
 	ctx := test.GetTestContext()
 
 	params := funding.GetLatestFundingRateParams{
-		ContractID: "10000002", // ETHUSDT contract ID
+		ContractID: "20000018", // liquid contract with active market making
 	}
 	resp, err := client.Funding.GetLatestFundingRate(ctx, params)
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")

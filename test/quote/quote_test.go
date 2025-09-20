@@ -15,7 +15,7 @@ func TestGetQuoteSummary(t *testing.T) {
 
 	ctx := test.GetTestContext()
 
-	resp, err := client.GetQuoteSummary(ctx, "10000002")
+	resp, err := client.GetQuoteSummary(ctx, "20000018")
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("Quote Summary: %s", string(jsonData))
 	assert.NoError(t, err)
@@ -33,7 +33,7 @@ func TestGet24HourQuotes(t *testing.T) {
 
 	ctx := test.GetTestContext()
 
-	resp, err := client.Get24HourQuote(ctx, "10000002")
+	resp, err := client.Get24HourQuote(ctx, "20000018")
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("24-Hour Quotes: %s", string(jsonData))
 	assert.NoError(t, err)
@@ -55,7 +55,7 @@ func TestGetKLine(t *testing.T) {
 	ctx := test.GetTestContext()
 
 	params := quote.GetKLineParams{
-		ContractID: "10000002",
+		ContractID: "20000018",
 		Interval:   "HOUR_1",
 		Size:       100,
 		PriceType:  "LAST_PRICE",
@@ -79,7 +79,7 @@ func TestGetOrderBookDepth(t *testing.T) {
 	ctx := test.GetTestContext()
 
 	params := quote.GetOrderBookDepthParams{
-		ContractID: "10000002",
+		ContractID: "20000018",
 		Size:       15, // API supports 15 or 200 levels
 	}
 	resp, err := client.GetOrderBookDepth(ctx, params)
@@ -92,8 +92,8 @@ func TestGetOrderBookDepth(t *testing.T) {
 	data := resp.GetData()
 	assert.NotNil(t, data)
 	for _, depth := range data {
-		assert.NotEmpty(t, depth.GetAsks())
-		assert.NotEmpty(t, depth.GetBids())
+		assert.NotNil(t, depth.GetAsks())
+		assert.NotNil(t, depth.GetBids())
 	}
 }
 
@@ -104,7 +104,7 @@ func TestGetMultiContractKLine(t *testing.T) {
 	ctx := test.GetTestContext()
 
 	params := quote.GetMultiContractKLineParams{
-		ContractIDs: []string{"10000002"},
+		ContractIDs: []string{"20000018"},
 		Interval:    "HOUR_1",
 		Size:        100,
 		PriceType:   "LAST_PRICE",

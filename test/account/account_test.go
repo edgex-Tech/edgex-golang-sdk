@@ -244,7 +244,7 @@ func TestUpdateLeverageSetting(t *testing.T) {
 
 	ctx := test.GetTestContext()
 
-	// Test updating leverage setting
-	err = client.UpdateLeverageSetting(ctx, "10000002", "60")
+	// Test updating leverage setting within allowed range on an active contract
+	err = client.UpdateLeverageSetting(ctx, "20000018", "5")
 	assert.NoError(t, err)
 }
