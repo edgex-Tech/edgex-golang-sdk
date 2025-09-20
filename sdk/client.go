@@ -185,6 +185,16 @@ func (c *Client) GetActiveOrders(ctx context.Context, params *order.GetActiveOrd
 	return c.Order.GetActiveOrders(ctx, params)
 }
 
+// GetOrdersByID retrieves orders using exchange order IDs.
+func (c *Client) GetOrdersByID(ctx context.Context, orderIDs []string) (*openapi.ResultListOrder, error) {
+	return c.Order.GetOrdersByID(ctx, orderIDs)
+}
+
+// GetOrdersByClientOrderID retrieves orders using client-provided order IDs.
+func (c *Client) GetOrdersByClientOrderID(ctx context.Context, clientOrderIDs []string) (*openapi.ResultListOrder, error) {
+	return c.Order.GetOrdersByClientOrderID(ctx, clientOrderIDs)
+}
+
 // GetOrderFillTransactions gets order fill transactions with pagination and filters
 func (c *Client) GetOrderFillTransactions(ctx context.Context, params *order.OrderFillTransactionParams) (*openapi.ResultPageDataOrderFillTransaction, error) {
 	return c.Order.GetOrderFillTransactions(ctx, params)

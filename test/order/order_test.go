@@ -2,8 +2,10 @@ package order
 
 import (
 	"encoding/json"
-	"testing"
+	"fmt"
 	"strings"
+	"testing"
+	"time"
 
 	"github.com/edgex-Tech/edgex-golang-sdk/openapi"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
@@ -84,9 +86,10 @@ func TestCreateAndCancelOrder(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
-	contractID := "10000002"
-	price := decimal.NewFromFloat(3300.1)
-	size := decimal.NewFromFloat(0.1)
+	contractID := "20000018"
+	price := decimal.NewFromFloat(60.0)
+	size := decimal.NewFromFloat(0.5)
+	clientOrderID := fmt.Sprintf("sdk-test-%d", time.Now().UnixNano())
 
 	// First get metadata
 	metadata, err := client.GetMetaData(ctx)
@@ -95,12 +98,13 @@ func TestCreateAndCancelOrder(t *testing.T) {
 
 	// Create order
 	orderParams := &order.CreateOrderParams{
-		ContractId:  contractID,
-		Price:       price.String(),
-		Size:        size.String(),
-		Type:        "LIMIT",
-		Side:        "BUY",
-		TimeInForce: "GOOD_TIL_CANCEL",
+		ContractId:    contractID,
+		Price:         price.String(),
+		Size:          size.String(),
+		Type:          "LIMIT",
+		Side:          "BUY",
+		TimeInForce:   "GOOD_TIL_CANCEL",
+		ClientOrderId: &clientOrderID,
 	}
 
 	resp, err := client.CreateOrder(ctx, orderParams)
@@ -111,6 +115,34 @@ func TestCreateAndCancelOrder(t *testing.T) {
 	if assert.NotNil(t, resp) && assert.NotNil(t, resp.Data) {
 		orderID := resp.Data.GetOrderId()
 		assert.NotEmpty(t, orderID)
+
+		ordersByID, err := client.GetOrdersByID(ctx, []string{orderID})
+		assert.NoError(t, err)
+		if assert.NotNil(t, ordersByID) {
+			assert.Equal(t, order.ResponseCodeSuccess, ordersByID.GetCode())
+			foundByID := false
+			for _, ord := range ordersByID.GetData() {
+				if ord.GetId() == orderID {
+					foundByID = true
+					break
+				}
+			}
+			assert.True(t, foundByID, "order should be returned by order ID lookup")
+		}
+
+		ordersByClientID, err := client.GetOrdersByClientOrderID(ctx, []string{clientOrderID})
+		assert.NoError(t, err)
+		if assert.NotNil(t, ordersByClientID) {
+			assert.Equal(t, order.ResponseCodeSuccess, ordersByClientID.GetCode())
+			foundByClient := false
+			for _, ord := range ordersByClientID.GetData() {
+				if ord.GetClientOrderId() == clientOrderID {
+					foundByClient = true
+					break
+				}
+			}
+			assert.True(t, foundByClient, "order should be returned by client order ID lookup")
+		}
 
 		// Cancel the created order
 		cancelResp, err := client.CancelOrder(ctx, &order.CancelOrderParams{

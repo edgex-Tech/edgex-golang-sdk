@@ -355,6 +355,54 @@ func (c *Client) GetOrderFillTransactions(ctx context.Context, params *OrderFill
 	return resp, nil
 }
 
+// GetOrdersByID retrieves orders by their order IDs.
+func (c *Client) GetOrdersByID(ctx context.Context, orderIDs []string) (*openapi.ResultListOrder, error) {
+	if len(orderIDs) == 0 {
+		return nil, fmt.Errorf("order IDs must not be empty")
+	}
+
+	req := c.openapiClient.Class04OrderPrivateApiAPI.GetOrderById(ctx)
+	accountID := strconv.FormatInt(c.GetAccountID(), 10)
+	req = req.AccountId(accountID)
+	req = req.OrderIdList(strings.Join(orderIDs, ","))
+
+	resp, _, err := req.Execute()
+	if err != nil {
+		return nil, err
+	}
+	if resp.GetCode() != ResponseCodeSuccess {
+		if errorParam := resp.GetErrorParam(); errorParam != nil {
+			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
+		}
+		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	}
+	return resp, nil
+}
+
+// GetOrdersByClientOrderID retrieves orders by their client order IDs.
+func (c *Client) GetOrdersByClientOrderID(ctx context.Context, clientOrderIDs []string) (*openapi.ResultListOrder, error) {
+	if len(clientOrderIDs) == 0 {
+		return nil, fmt.Errorf("client order IDs must not be empty")
+	}
+
+	req := c.openapiClient.Class04OrderPrivateApiAPI.GetOrderByClientOrderId(ctx)
+	accountID := strconv.FormatInt(c.GetAccountID(), 10)
+	req = req.AccountId(accountID)
+	req = req.ClientOrderIdList(strings.Join(clientOrderIDs, ","))
+
+	resp, _, err := req.Execute()
+	if err != nil {
+		return nil, err
+	}
+	if resp.GetCode() != ResponseCodeSuccess {
+		if errorParam := resp.GetErrorParam(); errorParam != nil {
+			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
+		}
+		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	}
+	return resp, nil
+}
+
 // GetMaxOrderSize gets the maximum order size for a given contract and price
 func (c *Client) GetMaxOrderSize(ctx context.Context, contractID string, price float64) (*openapi.ResultGetMaxCreateOrderSize, error) {
 	req := c.openapiClient.Class04OrderPrivateApiAPI.GetMaxCreateOrderSize(ctx)
