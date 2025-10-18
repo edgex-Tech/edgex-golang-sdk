@@ -158,3 +158,46 @@ type OrderFillFilterParams struct {
 	OrderFilterParams
 	FilterOrderIdList []string // Filter by order IDs, empty means all orders
 }
+
+// Response types for order API
+
+// ResultCreateOrder represents the result of creating an order
+type ResultCreateOrder struct {
+	Code       string        `json:"code"`
+	Data       interface{}   `json:"data"`
+	ErrorParam []interface{} `json:"errorParam"`
+}
+
+// ResultPageDataOrder represents paginated order data
+type ResultPageDataOrder struct {
+	Code       string        `json:"code"`
+	Data       *PageData     `json:"data"`
+	ErrorParam []interface{} `json:"errorParam"`
+}
+
+// PageData represents pagination data
+type PageData struct {
+	List       []interface{} `json:"list"`
+	OffsetData string        `json:"offsetData"`
+}
+
+// ResultPageDataOrderFillTransaction represents paginated order fill transaction data
+type ResultPageDataOrderFillTransaction struct {
+	Code       string        `json:"code"`
+	Data       *PageData     `json:"data"`
+	ErrorParam []interface{} `json:"errorParam"`
+}
+
+// ResultListOrder represents list of orders
+type ResultListOrder struct {
+	Code       string        `json:"code"`
+	Data       []interface{} `json:"data"`
+	ErrorParam []interface{} `json:"errorParam"`
+}
+
+// ResultGetMaxCreateOrderSize represents the result of getting max order size
+type ResultGetMaxCreateOrderSize struct {
+	Code       string        `json:"code"`
+	Data       interface{}   `json:"data"`
+	ErrorParam []interface{} `json:"errorParam"`
+}

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/edgex-Tech/edgex-golang-sdk/starkcurve"
 
@@ -219,4 +221,9 @@ func GetValue(value interface{}) string {
 		// Handle other primitive types
 		return fmt.Sprint(v)
 	}
+}
+
+func GetRandomClientId() string {
+	nanoTimestamp := time.Now().UnixNano()
+	return strconv.FormatInt(nanoTimestamp, 10)
 }

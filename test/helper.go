@@ -27,12 +27,14 @@ func init() {
 func CreateTestClient() (*sdk.Client, error) {
 	baseURL := os.Getenv("TEST_BASE_URL")
 	if baseURL == "" {
-		return nil, fmt.Errorf("TEST_BASE_URL environment variable is not set")
+		//return nil, fmt.Errorf("TEST_BASE_URL environment variable is not set")
+		baseURL = "https://testnet.edgex.exchange"
 	}
 
 	accountIDStr := os.Getenv("TEST_ACCOUNT_ID")
 	if accountIDStr == "" {
-		return nil, fmt.Errorf("TEST_ACCOUNT_ID environment variable is not set")
+		// return nil, fmt.Errorf("TEST_ACCOUNT_ID environment variable is not set")
+		accountIDStr = "665403845421039873"
 	}
 
 	accountID, err := strconv.ParseInt(accountIDStr, 10, 64)
@@ -42,7 +44,8 @@ func CreateTestClient() (*sdk.Client, error) {
 
 	starkPrivateKey := os.Getenv("TEST_STARK_PRIVATE_KEY")
 	if starkPrivateKey == "" {
-		return nil, fmt.Errorf("TEST_STARK_PRIVATE_KEY environment variable is not set")
+		//return nil, fmt.Errorf("TEST_STARK_PRIVATE_KEY environment variable is not set")
+		starkPrivateKey = "04a266bc1e005725a278034bc4ab0f3075a7110a47d390b0b1b7841cabac0c4d"
 	}
 
 	return sdk.NewClient(&sdk.ClientConfig{

@@ -3,12 +3,18 @@ package internal
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
+	"net/url"
+	"sort"
+	"strings"
 	"time"
 
 	openapi "github.com/edgex-Tech/edgex-golang-sdk/openapi"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/edgex-Tech/edgex-golang-sdk/starkcurve"
 )
@@ -56,6 +62,159 @@ func (c *Client) GetAccountID() int64 {
 // GetStarkPriKey returns the stark private key
 func (c *Client) GetStarkPriKey() string {
 	return c.starkPriKey
+}
+
+// GetBaseURL returns the base URL
+func (c *Client) GetBaseURL() string {
+	return c.baseURL
+}
+
+// HttpRequest makes an authenticated HTTP request
+func (c *Client) HttpRequest(urlStr string, method string, data map[string]interface{}, params map[string]string) (*http.Response, error) {
+	// Generate timestamp
+	timestamp := time.Now().UnixMilli()
+
+	// Parse URL to extract path
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse URL: %w", err)
+	}
+	path := parsedURL.Path
+	if parsedURL.RawQuery != "" {
+		path = path + "?" + parsedURL.RawQuery
+	}
+
+	// Build signature content
+	signContent := c.buildSignatureContent(timestamp, method, path, data, params)
+
+	// Calculate Keccak256 hash
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write([]byte(signContent))
+	contentHash := hash.Sum(nil)
+
+	// Sign the hash
+	sig, err := c.Sign(contentHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign request: %w", err)
+	}
+
+	// Create request
+	var req *http.Request
+	if method == "GET" {
+		// For GET requests, add params to URL
+		if len(params) > 0 {
+			q := url.Values{}
+			for k, v := range params {
+				q.Add(k, v)
+			}
+			urlStr = urlStr + "?" + q.Encode()
+		}
+		req, err = http.NewRequest(method, urlStr, nil)
+	} else {
+		// For POST/PUT requests, send data as JSON body
+		var body io.Reader
+		if len(data) > 0 {
+			bodyBytes, err := json.Marshal(data)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal request body: %w", err)
+			}
+			body = bytes.NewReader(bodyBytes)
+		}
+		req, err = http.NewRequest(method, urlStr, body)
+		if body != nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add authentication headers
+	req.Header.Set("X-edgeX-Api-Timestamp", fmt.Sprintf("%d", timestamp))
+	req.Header.Set("X-edgeX-Api-Signature", fmt.Sprintf("%s%s", sig.R, sig.S))
+	req.Header.Set("Accept", "application/json")
+
+	// Execute request
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+
+	return resp, nil
+}
+
+// buildSignatureContent builds the content string for signature generation
+func (c *Client) buildSignatureContent(timestamp int64, method string, path string, data map[string]interface{}, params map[string]string) string {
+	if len(data) > 0 {
+		// Convert body to sorted string format
+		bodyStr := c.getValue(data)
+		return fmt.Sprintf("%d%s%s%s", timestamp, method, path, bodyStr)
+	}
+
+	// For requests without body, use query parameters if present
+	if len(params) > 0 {
+		// Sort query parameters
+		keys := make([]string, 0, len(params))
+		for k := range params {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		var paramPairs []string
+		for _, k := range keys {
+			paramPairs = append(paramPairs, fmt.Sprintf("%s=%s", k, params[k]))
+		}
+		queryString := strings.Join(paramPairs, "&")
+		return fmt.Sprintf("%d%s%s%s", timestamp, method, path, queryString)
+	}
+
+	return fmt.Sprintf("%d%s%s", timestamp, method, path)
+}
+
+// getValue converts a value to a string representation for signing
+func (c *Client) getValue(data interface{}) string {
+	switch v := data.(type) {
+	case nil:
+		return ""
+	case string:
+		return v
+	case bool:
+		return strings.ToLower(fmt.Sprintf("%v", v))
+	case int, int32, int64, float32, float64:
+		return fmt.Sprintf("%v", v)
+	case []interface{}:
+		if len(v) == 0 {
+			return ""
+		}
+		var values []string
+		for _, item := range v {
+			values = append(values, c.getValue(item))
+		}
+		return strings.Join(values, "&")
+	case map[string]interface{}:
+		// Convert all values to strings and sort by keys
+		sortedMap := make(map[string]string)
+		for key, val := range v {
+			sortedMap[key] = c.getValue(val)
+		}
+
+		// Get sorted keys
+		keys := make([]string, 0, len(sortedMap))
+		for k := range sortedMap {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		// Build key=value pairs
+		var pairs []string
+		for _, k := range keys {
+			pairs = append(pairs, fmt.Sprintf("%s=%s", k, sortedMap[k]))
+		}
+		return strings.Join(pairs, "&")
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }
 
 // Sign signs a message hash using the client's Stark private key

@@ -2,172 +2,201 @@ package quote
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"strconv"
 	"strings"
 
-	openapi "github.com/edgex-Tech/edgex-golang-sdk/openapi"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
 )
 
-// Client represents the quote client
+// Client represents the new quote client without OpenAPI dependencies
 type Client struct {
 	*internal.Client
-	openapiClient *openapi.APIClient
 }
 
 // NewClient creates a new quote client
-func NewClient(client *internal.Client, openapiClient *openapi.APIClient) *Client {
+func NewClient(client *internal.Client) *Client {
 	return &Client{
-		Client:        client,
-		openapiClient: openapiClient,
+		Client: client,
 	}
 }
 
 // GetQuoteSummary gets the quote summary for a given contract
-func (c *Client) GetQuoteSummary(ctx context.Context, contractID string) (*openapi.ResultGetTickerSummaryModel, error) {
-	resp, _, err := c.openapiClient.Class01QuotePublicApiAPI.GetTicketSummary(ctx).
-		Execute()
+func (c *Client) GetQuoteSummary(ctx context.Context, contractID string) (*ResultGetTickerSummaryModel, error) {
+	url := fmt.Sprintf("%s/api/v1/public/quote/getTicketSummary", c.Client.GetBaseURL())
+	queryParams := map[string]string{}
+
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get quote summary: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != "SUCCESS" {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
+	var result ResultGetTickerSummaryModel
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
-// Get24HourQuotes gets the 24-hour quotes for given contracts
-func (c *Client) Get24HourQuote(ctx context.Context, contractId string) (*openapi.ResultListTicker, error) {
-	resp, _, err := c.openapiClient.Class01QuotePublicApiAPI.GetTicker(ctx).
-		ContractId(contractId). // API only supports one contract ID
-		Execute()
+// Get24HourQuote gets the 24-hour quotes for given contracts
+func (c *Client) Get24HourQuote(ctx context.Context, contractId string) (*ResultListTicker, error) {
+	url := fmt.Sprintf("%s/api/v1/public/quote/getTicker", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"contractId": contractId,
+	}
+
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get 24-hour quotes: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != "SUCCESS" {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
-}
+	var result ResultListTicker
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 
-// GetKLineParams represents the parameters for GetKLine
-type GetKLineParams struct {
-	ContractID string
-	Interval   string
-	Size       int32
-	From       *int64
-	To         *int64
-	PriceType  string
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
 // GetKLine gets the K-line data for a contract
-func (c *Client) GetKLine(ctx context.Context, params GetKLineParams) (*openapi.ResultPageDataKline, error) {
-	req := c.openapiClient.Class01QuotePublicApiAPI.GetKline(ctx).
-		ContractId(params.ContractID).
-		KlineType(params.Interval).
-		Size(fmt.Sprintf("%d", params.Size))
+func (c *Client) GetKLine(ctx context.Context, params GetKLineParams) (*ResultPageDataKline, error) {
+	url := fmt.Sprintf("%s/api/v1/public/quote/getKline", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"contractId": params.ContractID,
+		"klineType":  params.Interval,
+		"size":       strconv.FormatInt(int64(params.Size), 10),
+	}
 
 	if params.PriceType != "" {
-		req = req.PriceType(params.PriceType)
+		queryParams["priceType"] = params.PriceType
 	}
 	if params.From != nil {
-		req = req.FilterBeginKlineTimeInclusive(fmt.Sprintf("%d", *params.From))
+		queryParams["filterBeginKlineTimeInclusive"] = strconv.FormatInt(*params.From, 10)
 	}
 	if params.To != nil {
-		req = req.FilterEndKlineTimeExclusive(fmt.Sprintf("%d", *params.To))
+		queryParams["filterEndKlineTimeExclusive"] = strconv.FormatInt(*params.To, 10)
 	}
 
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get k-line data: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != "SUCCESS" {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
-}
+	var result ResultPageDataKline
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 
-// GetOrderBookDepthParams represents the parameters for GetOrderBookDepth
-type GetOrderBookDepthParams struct {
-	ContractID string
-	Size       int32
-	Precision  *string
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
 // GetOrderBookDepth gets the order book depth for a contract
-func (c *Client) GetOrderBookDepth(ctx context.Context, params GetOrderBookDepthParams) (*openapi.ResultListDepth, error) {
-	req := c.openapiClient.Class01QuotePublicApiAPI.GetDepth(ctx).
-		ContractId(params.ContractID).
-		Level(fmt.Sprintf("%d", params.Size))
+func (c *Client) GetOrderBookDepth(ctx context.Context, params GetOrderBookDepthParams) (*ResultListDepth, error) {
+	url := fmt.Sprintf("%s/api/v1/public/quote/getDepth", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"contractId": params.ContractID,
+		"level":      strconv.FormatInt(int64(params.Size), 10),
+	}
 
-	resp, _, err := req.Execute()
+	if params.Precision != nil {
+		queryParams["precision"] = *params.Precision
+	}
+
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get order book depth: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != "SUCCESS" {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
-}
+	var result ResultListDepth
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 
-// GetMultiContractKLineParams represents the parameters for GetMultiContractKLine
-type GetMultiContractKLineParams struct {
-	ContractIDs []string
-	Interval    string
-	Size        int32
-	From        *int64
-	To          *int64
-	PriceType   string
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
 // GetMultiContractKLine gets the K-line data for multiple contracts
-func (c *Client) GetMultiContractKLine(ctx context.Context, params GetMultiContractKLineParams) (*openapi.ResultListContractKline, error) {
-	req := c.openapiClient.Class01QuotePublicApiAPI.GetMultiContractKline(ctx).
-		ContractIdList(strings.Join(params.ContractIDs, ",")).
-		KlineType(params.Interval).
-		Size(fmt.Sprintf("%d", params.Size))
+func (c *Client) GetMultiContractKLine(ctx context.Context, params GetMultiContractKLineParams) (*ResultListContractKline, error) {
+	url := fmt.Sprintf("%s/api/v1/public/quote/getMultiContractKline", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"contractIdList": strings.Join(params.ContractIDs, ","),
+		"klineType":      params.Interval,
+		"size":           strconv.FormatInt(int64(params.Size), 10),
+	}
 
 	if params.PriceType != "" {
-		req = req.PriceType(params.PriceType)
+		queryParams["priceType"] = params.PriceType
 	}
 	if params.From != nil {
-		req = req.FilterBeginKlineTimeInclusive(fmt.Sprintf("%d", *params.From))
+		queryParams["filterBeginKlineTimeInclusive"] = strconv.FormatInt(*params.From, 10)
 	}
 	if params.To != nil {
-		req = req.FilterEndKlineTimeExclusive(fmt.Sprintf("%d", *params.To))
+		queryParams["filterEndKlineTimeExclusive"] = strconv.FormatInt(*params.To, 10)
 	}
 
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get multi-contract k-line data: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != "SUCCESS" {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
+	var result ResultListContractKline
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
+

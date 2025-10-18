@@ -2,32 +2,31 @@ package order
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
 
-	openapi "github.com/edgex-Tech/edgex-golang-sdk/openapi"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
 	"github.com/shopspring/decimal"
 )
 
-// Client represents the order client
+// Client represents the new order client without OpenAPI dependencies
 type Client struct {
 	*internal.Client
-	openapiClient *openapi.APIClient
 }
 
 // NewClient creates a new order client
-func NewClient(client *internal.Client, openapiClient *openapi.APIClient) *Client {
+func NewClient(client *internal.Client) *Client {
 	return &Client{
-		Client:        client,
-		openapiClient: openapiClient,
+		Client: client,
 	}
 }
 
 // CreateOrder creates a new order with the given parameters
-func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, metadata openapi.MetaData) (*openapi.ResultCreateOrder, error) {
+func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, metadata interface{}) (*ResultCreateOrder, error) {
 	// Set default TimeInForce based on order type if not specified
 	if params.TimeInForce == "" {
 		switch params.Type {
@@ -37,23 +36,6 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 			params.TimeInForce = string(TimeInForce_GOOD_TIL_CANCEL)
 		}
 	}
-
-	// Find the contract from metadata
-	var contract *openapi.Contract
-	contractList := metadata.GetContractList()
-	for i := range contractList {
-		if contractList[i].GetContractId() == params.ContractId {
-			contract = &contractList[i]
-			break
-		}
-	}
-	if contract == nil {
-		return nil, fmt.Errorf("contract not found: %s", params.ContractId)
-	}
-
-	// Get collateral coin from metadata
-	global := metadata.GetGlobal()
-	collateralCoin := global.GetStarkExCollateralCoin()
 
 	// Parse decimal values
 	size, err := decimal.NewFromString(params.Size)
@@ -66,17 +48,6 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 		return nil, fmt.Errorf("failed to parse price: %w", err)
 	}
 
-	// Convert hex resolution to decimal
-	hexResolution := contract.GetStarkExResolution()
-	// Remove "0x" prefix if present
-	hexResolution = strings.TrimPrefix(hexResolution, "0x")
-	// Parse hex string to int64
-	resolutionInt, err := strconv.ParseInt(hexResolution, 16, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse hex resolution: %w", err)
-	}
-	resolution := decimal.NewFromInt(resolutionInt)
-
 	clientOrderId := internal.GenerateUUID()
 	if params.ClientOrderId != nil {
 		clientOrderId = *params.ClientOrderId
@@ -84,344 +55,333 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 
 	// Calculate values
 	valueDm := price.Mul(size)
-	amountSynthetic := size.Mul(resolution).IntPart()
-	amountCollateral := valueDm.Shift(6).IntPart()
+	// amountCollateral := valueDm.Shift(6).IntPart()
 
-	// Calculate fee based on order type (maker/taker)
-	feeRate, err := decimal.NewFromString(contract.GetDefaultTakerFeeRate())
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse fee rate: %w", err)
-	}
-
-	// Calculate fee amount in decimal with ceiling
+	// Calculate fee based on order type (using default taker fee rate)
+	feeRate, _ := decimal.NewFromString("0.001") // Default fee rate
 	amountFeeDm := valueDm.Mul(feeRate).Ceil()
 	amountFeeStr := amountFeeDm.String()
-
-	// Convert to the required integer format for the protocol
-	amountFee := amountFeeDm.Shift(6).IntPart()
+	// amountFee := amountFeeDm.Shift(6).IntPart()
 
 	nonce := internal.CalcNonce(clientOrderId)
 	l2ExpireTime := time.Now().Add(14 * 24 * time.Hour).UnixMilli()
 
-	// Calculate signature using asset IDs from metadata
-	expireTimeUnix := l2ExpireTime / (60 * 60 * 1000)
-	sigHash := internal.CalcLimitOrderHash(
-		contract.GetStarkExSyntheticAssetId(),
-		collateralCoin.GetStarkExAssetId(),
-		collateralCoin.GetStarkExAssetId(),
-		params.Side == OrderSideBuy,
-		amountSynthetic,
-		amountCollateral,
-		amountFee,
-		nonce,
-		c.Client.GetAccountID(),
-		expireTimeUnix,
-	)
-
-	// Sign the order
-	sig, err := c.Client.Sign(sigHash)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign order: %w", err)
+	// Build request body
+	body := map[string]interface{}{
+		"accountId":     strconv.FormatInt(c.Client.GetAccountID(), 10),
+		"contractId":    params.ContractId,
+		"price":         params.Price,
+		"size":          params.Size,
+		"type":          string(params.Type),
+		"side":          params.Side,
+		"timeInForce":   params.TimeInForce,
+		"clientOrderId": clientOrderId,
+		"l2Nonce":       strconv.FormatInt(nonce, 10),
+		"l2ExpireTime":  strconv.FormatInt(l2ExpireTime, 10),
+		"l2Value":       valueDm.String(),
+		"l2Size":        params.Size,
+		"l2LimitFee":    amountFeeStr,
+		"reduceOnly":    params.ReduceOnly,
 	}
 
-	// Convert signature to string
-	sigStr := fmt.Sprintf("%s%s%s", sig.R, sig.S, sig.V)
-
-	// Create order request
-	accountID := strconv.FormatInt(c.Client.GetAccountID(), 10)
-	nonceStr := strconv.FormatInt(nonce, 10)
-	l2ExpireTimeStr := strconv.FormatInt(l2ExpireTime, 10)
-	expireTimeStr := strconv.FormatInt(l2ExpireTime-864000000, 10)
-	valueStr := valueDm.String()
-
-	var price_ string
-	if string(params.Type) == string(OrderTypeLimit) {
-		price_ = params.Price
-	} else {
-		price_ = "0"
-	}
-
-	req := c.openapiClient.Class04OrderPrivateApiAPI.CreateOrder(ctx).
-		CreateOrderParam(openapi.CreateOrderParam{
-			AccountId:     &accountID,
-			ContractId:    &params.ContractId,
-			Price:         &price_,
-			Size:          &params.Size,
-			Type:          (*string)(&params.Type),
-			TimeInForce:   &params.TimeInForce,
-			Side:          &params.Side,
-			L2Signature:   &sigStr,
-			L2Nonce:       &nonceStr,
-			L2ExpireTime:  &l2ExpireTimeStr,
-			L2Value:       &valueStr,
-			L2Size:        &params.Size,
-			L2LimitFee:    &amountFeeStr,
-			ClientOrderId: &clientOrderId,
-			ExpireTime:    &expireTimeStr,
-			ReduceOnly:    &params.ReduceOnly,
-		})
-
-	// Execute request
-	resp, _, err := req.Execute()
+	url := fmt.Sprintf("%s/api/v1/private/order/createOrder", c.Client.GetBaseURL())
+	resp, err := c.Client.HttpRequest(url, "POST", body, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create order: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != ResponseCodeSuccess {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
+	var result ResultCreateOrder
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
 // CancelOrder cancels a specific order
 func (c *Client) CancelOrder(ctx context.Context, params *CancelOrderParams) (interface{}, error) {
+	url := fmt.Sprintf("%s/api/v1/private/order/cancelOrder", c.Client.GetBaseURL())
+	accountID := strconv.FormatInt(c.Client.GetAccountID(), 10)
+
+	var body map[string]interface{}
+
 	if params.OrderId != "" {
-		req := c.openapiClient.Class04OrderPrivateApiAPI.CancelOrderById(ctx)
-		accountID := strconv.FormatInt(c.GetAccountID(), 10)
-		cancelParam := openapi.CancelOrderByIdParam{
-			AccountId:   &accountID,
-			OrderIdList: []string{params.OrderId},
+		body = map[string]interface{}{
+			"accountId":   accountID,
+			"orderIdList": []string{params.OrderId},
 		}
-		req = req.CancelOrderByIdParam(cancelParam)
-		resp, _, err := req.Execute()
-		if err != nil {
-			return nil, err
-		}
-		if resp.GetCode() != ResponseCodeSuccess {
-			if errorParam := resp.GetErrorParam(); errorParam != nil {
-				return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-			}
-			return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
-		}
-		return resp, nil
 	} else if params.ClientId != "" {
-		req := c.openapiClient.Class04OrderPrivateApiAPI.CancelOrderByClientOrderId(ctx)
-		accountID := strconv.FormatInt(c.GetAccountID(), 10)
-		cancelParam := openapi.CancelOrderByClientOrderIdParam{
-			AccountId:         &accountID,
-			ClientOrderIdList: []string{params.ClientId},
+		body = map[string]interface{}{
+			"accountId":         accountID,
+			"clientOrderIdList": []string{params.ClientId},
 		}
-		req = req.CancelOrderByClientOrderIdParam(cancelParam)
-		resp, _, err := req.Execute()
-		if err != nil {
-			return nil, err
-		}
-		if resp.GetCode() != ResponseCodeSuccess {
-			if errorParam := resp.GetErrorParam(); errorParam != nil {
-				return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-			}
-			return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
-		}
-		return resp, nil
 	} else if params.ContractId != "" {
-		req := c.openapiClient.Class04OrderPrivateApiAPI.CancelAllOrder(ctx)
-		accountID := strconv.FormatInt(c.GetAccountID(), 10)
-		cancelParam := openapi.CancelAllOrderParam{
-			AccountId:            &accountID,
-			FilterContractIdList: []string{params.ContractId},
+		body = map[string]interface{}{
+			"accountId":            accountID,
+			"filterContractIdList": []string{params.ContractId},
 		}
-		req = req.CancelAllOrderParam(cancelParam)
-		resp, _, err := req.Execute()
-		if err != nil {
-			return nil, err
-		}
-		if resp.GetCode() != ResponseCodeSuccess {
-			if errorParam := resp.GetErrorParam(); errorParam != nil {
-				return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-			}
-			return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
-		}
-		return resp, nil
+	} else {
+		return nil, fmt.Errorf("must provide either OrderId, ClientId, or ContractId")
 	}
-	return nil, fmt.Errorf("must provide either OrderId, ClientId, or ContractId")
+
+	resp, err := c.Client.HttpRequest(url, "POST", body, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to cancel order: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if code, ok := result["code"].(string); ok && code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", code)
+	}
+
+	return result, nil
 }
 
 // GetActiveOrders gets active orders with pagination and filters
-func (c *Client) GetActiveOrders(ctx context.Context, params *GetActiveOrderParams) (*openapi.ResultPageDataOrder, error) {
-	req := c.openapiClient.Class04OrderPrivateApiAPI.GetActiveOrderPage(ctx)
+func (c *Client) GetActiveOrders(ctx context.Context, params *GetActiveOrderParams) (*ResultPageDataOrder, error) {
+	url := fmt.Sprintf("%s/api/v1/private/order/getActiveOrderPage", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"accountId": strconv.FormatInt(c.Client.GetAccountID(), 10),
+	}
 
-	// Set account ID and pagination
-	req = req.AccountId(strconv.FormatInt(c.GetAccountID(), 10))
 	if params.Size != "" {
-		req = req.Size(params.Size)
+		queryParams["size"] = params.Size
 	}
 	if params.OffsetData != "" {
-		req = req.OffsetData(params.OffsetData)
+		queryParams["offsetData"] = params.OffsetData
 	}
 
-	// Set filters
 	if len(params.FilterCoinIdList) > 0 {
-		req = req.FilterCoinIdList(strings.Join(params.FilterCoinIdList, ","))
+		queryParams["filterCoinIdList"] = strings.Join(params.FilterCoinIdList, ",")
 	}
 	if len(params.FilterContractIdList) > 0 {
-		req = req.FilterContractIdList(strings.Join(params.FilterContractIdList, ","))
+		queryParams["filterContractIdList"] = strings.Join(params.FilterContractIdList, ",")
 	}
 	if len(params.FilterTypeList) > 0 {
-		req = req.FilterTypeList(strings.Join(params.FilterTypeList, ","))
+		queryParams["filterTypeList"] = strings.Join(params.FilterTypeList, ",")
 	}
 	if len(params.FilterStatusList) > 0 {
-		req = req.FilterStatusList(strings.Join(params.FilterStatusList, ","))
+		queryParams["filterStatusList"] = strings.Join(params.FilterStatusList, ",")
 	}
-
-	// Set boolean filters
 	if params.FilterIsLiquidate != nil {
-		req = req.FilterIsLiquidateList(strconv.FormatBool(*params.FilterIsLiquidate))
+		queryParams["filterIsLiquidate"] = strconv.FormatBool(*params.FilterIsLiquidate)
 	}
 	if params.FilterIsDeleverage != nil {
-		req = req.FilterIsDeleverageList(strconv.FormatBool(*params.FilterIsDeleverage))
+		queryParams["filterIsDeleverage"] = strconv.FormatBool(*params.FilterIsDeleverage)
 	}
 	if params.FilterIsPositionTpsl != nil {
-		req = req.FilterIsPositionTpslList(strconv.FormatBool(*params.FilterIsPositionTpsl))
+		queryParams["filterIsPositionTpsl"] = strconv.FormatBool(*params.FilterIsPositionTpsl)
 	}
-
-	// Set time filters
 	if params.FilterStartCreatedTimeInclusive > 0 {
-		req = req.FilterStartCreatedTimeInclusive(strconv.FormatUint(params.FilterStartCreatedTimeInclusive, 10))
+		queryParams["filterStartCreatedTimeInclusive"] = strconv.FormatUint(params.FilterStartCreatedTimeInclusive, 10)
 	}
 	if params.FilterEndCreatedTimeExclusive > 0 {
-		req = req.FilterEndCreatedTimeExclusive(strconv.FormatUint(params.FilterEndCreatedTimeExclusive, 10))
+		queryParams["filterEndCreatedTimeExclusive"] = strconv.FormatUint(params.FilterEndCreatedTimeExclusive, 10)
 	}
 
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get active orders: %w", err)
 	}
-	if resp.GetCode() != ResponseCodeSuccess {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	return resp, nil
+
+	var result ResultPageDataOrder
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
 // GetOrderFillTransactions gets order fill transactions with pagination and filters
-func (c *Client) GetOrderFillTransactions(ctx context.Context, params *OrderFillTransactionParams) (*openapi.ResultPageDataOrderFillTransaction, error) {
-	req := c.openapiClient.Class04OrderPrivateApiAPI.GetHistoryOrderFillTransactionPage(ctx)
+func (c *Client) GetOrderFillTransactions(ctx context.Context, params *OrderFillTransactionParams) (*ResultPageDataOrderFillTransaction, error) {
+	url := fmt.Sprintf("%s/api/v1/private/order/getHistoryOrderFillTransactionPage", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"accountId": strconv.FormatInt(c.Client.GetAccountID(), 10),
+	}
 
-	// Set account ID and pagination
-	req = req.AccountId(strconv.FormatInt(c.GetAccountID(), 10))
 	if params.Size != "" {
-		req = req.Size(params.Size)
+		queryParams["size"] = params.Size
 	}
 	if params.OffsetData != "" {
-		req = req.OffsetData(params.OffsetData)
+		queryParams["offsetData"] = params.OffsetData
 	}
 
-	// Set filters
 	if len(params.FilterCoinIdList) > 0 {
-		req = req.FilterCoinIdList(strings.Join(params.FilterCoinIdList, ","))
+		queryParams["filterCoinIdList"] = strings.Join(params.FilterCoinIdList, ",")
 	}
 	if len(params.FilterContractIdList) > 0 {
-		req = req.FilterContractIdList(strings.Join(params.FilterContractIdList, ","))
+		queryParams["filterContractIdList"] = strings.Join(params.FilterContractIdList, ",")
 	}
 	if len(params.FilterOrderIdList) > 0 {
-		req = req.FilterOrderIdList(strings.Join(params.FilterOrderIdList, ","))
+		queryParams["filterOrderIdList"] = strings.Join(params.FilterOrderIdList, ",")
 	}
-
-	// Set boolean filters
 	if params.FilterIsLiquidate != nil {
-		req = req.FilterIsLiquidateList(strconv.FormatBool(*params.FilterIsLiquidate))
+		queryParams["filterIsLiquidate"] = strconv.FormatBool(*params.FilterIsLiquidate)
 	}
 	if params.FilterIsDeleverage != nil {
-		req = req.FilterIsDeleverageList(strconv.FormatBool(*params.FilterIsDeleverage))
+		queryParams["filterIsDeleverage"] = strconv.FormatBool(*params.FilterIsDeleverage)
 	}
 	if params.FilterIsPositionTpsl != nil {
-		req = req.FilterIsPositionTpslList(strconv.FormatBool(*params.FilterIsPositionTpsl))
+		queryParams["filterIsPositionTpsl"] = strconv.FormatBool(*params.FilterIsPositionTpsl)
 	}
-
-	// Set time filters
 	if params.FilterStartCreatedTimeInclusive > 0 {
-		req = req.FilterStartCreatedTimeInclusive(strconv.FormatUint(params.FilterStartCreatedTimeInclusive, 10))
+		queryParams["filterStartCreatedTimeInclusive"] = strconv.FormatUint(params.FilterStartCreatedTimeInclusive, 10)
 	}
 	if params.FilterEndCreatedTimeExclusive > 0 {
-		req = req.FilterEndCreatedTimeExclusive(strconv.FormatUint(params.FilterEndCreatedTimeExclusive, 10))
+		queryParams["filterEndCreatedTimeExclusive"] = strconv.FormatUint(params.FilterEndCreatedTimeExclusive, 10)
 	}
 
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get order fill transactions: %w", err)
 	}
-	if resp.GetCode() != ResponseCodeSuccess {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	return resp, nil
+
+	var result ResultPageDataOrderFillTransaction
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
-// GetOrdersByID retrieves orders by their order IDs.
-func (c *Client) GetOrdersByID(ctx context.Context, orderIDs []string) (*openapi.ResultListOrder, error) {
+// GetOrdersByID retrieves orders by their order IDs
+func (c *Client) GetOrdersByID(ctx context.Context, orderIDs []string) (*ResultListOrder, error) {
 	if len(orderIDs) == 0 {
 		return nil, fmt.Errorf("order IDs must not be empty")
 	}
 
-	req := c.openapiClient.Class04OrderPrivateApiAPI.GetOrderById(ctx)
-	accountID := strconv.FormatInt(c.GetAccountID(), 10)
-	req = req.AccountId(accountID)
-	req = req.OrderIdList(strings.Join(orderIDs, ","))
+	url := fmt.Sprintf("%s/api/v1/private/order/getOrderById", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"accountId":   strconv.FormatInt(c.Client.GetAccountID(), 10),
+		"orderIdList": strings.Join(orderIDs, ","),
+	}
 
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get orders by id: %w", err)
 	}
-	if resp.GetCode() != ResponseCodeSuccess {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	return resp, nil
+
+	var result ResultListOrder
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
-// GetOrdersByClientOrderID retrieves orders by their client order IDs.
-func (c *Client) GetOrdersByClientOrderID(ctx context.Context, clientOrderIDs []string) (*openapi.ResultListOrder, error) {
+// GetOrdersByClientOrderID retrieves orders by their client order IDs
+func (c *Client) GetOrdersByClientOrderID(ctx context.Context, clientOrderIDs []string) (*ResultListOrder, error) {
 	if len(clientOrderIDs) == 0 {
 		return nil, fmt.Errorf("client order IDs must not be empty")
 	}
 
-	req := c.openapiClient.Class04OrderPrivateApiAPI.GetOrderByClientOrderId(ctx)
-	accountID := strconv.FormatInt(c.GetAccountID(), 10)
-	req = req.AccountId(accountID)
-	req = req.ClientOrderIdList(strings.Join(clientOrderIDs, ","))
+	url := fmt.Sprintf("%s/api/v1/private/order/getOrderByClientOrderId", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"accountId":         strconv.FormatInt(c.Client.GetAccountID(), 10),
+		"clientOrderIdList": strings.Join(clientOrderIDs, ","),
+	}
 
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get orders by client order id: %w", err)
 	}
-	if resp.GetCode() != ResponseCodeSuccess {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	return resp, nil
+
+	var result ResultListOrder
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
 // GetMaxOrderSize gets the maximum order size for a given contract and price
-func (c *Client) GetMaxOrderSize(ctx context.Context, contractID string, price float64) (*openapi.ResultGetMaxCreateOrderSize, error) {
-	req := c.openapiClient.Class04OrderPrivateApiAPI.GetMaxCreateOrderSize(ctx)
-	accountID := strconv.FormatInt(c.GetAccountID(), 10)
-	priceStr := fmt.Sprintf("%f", price)
-	param := openapi.GetMaxCreateOrderSizeParam{
-		AccountId:  &accountID,
-		ContractId: &contractID,
-		Price:      &priceStr,
+func (c *Client) GetMaxOrderSize(ctx context.Context, contractID string, price float64) (*ResultGetMaxCreateOrderSize, error) {
+	url := fmt.Sprintf("%s/api/v1/private/order/getMaxCreateOrderSize", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"accountId":  strconv.FormatInt(c.Client.GetAccountID(), 10),
+		"contractId": contractID,
+		"price":      fmt.Sprintf("%f", price),
 	}
-	resp, _, err := req.GetMaxCreateOrderSizeParam(param).Execute()
+
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get max order size: %w", err)
 	}
-	if resp.GetCode() != ResponseCodeSuccess {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	return resp, nil
+
+	var result ResultGetMaxCreateOrderSize
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }

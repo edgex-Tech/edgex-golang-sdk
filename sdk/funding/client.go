@@ -2,90 +2,97 @@ package funding
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"strconv"
 
-	openapi "github.com/edgex-Tech/edgex-golang-sdk/openapi"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
 )
 
-// Client represents the funding client
+// Client represents the new funding client without OpenAPI dependencies
 type Client struct {
 	*internal.Client
-	openapiClient *openapi.APIClient
 }
 
 // NewClient creates a new funding client
-func NewClient(client *internal.Client, openapiClient *openapi.APIClient) *Client {
+func NewClient(client *internal.Client) *Client {
 	return &Client{
-		Client:        client,
-		openapiClient: openapiClient,
+		Client: client,
 	}
-}
-
-// GetFundingRateParams represents the parameters for GetFundingRate
-type GetFundingRateParams struct {
-	ContractID string
-	From       *int64
-	To         *int64
-	Size       *int32
-	Offset     *string
 }
 
 // GetFundingRate gets the funding rate for a contract
-func (c *Client) GetFundingRate(ctx context.Context, params GetFundingRateParams) (*openapi.ResultPageDataFundingRate, error) {
-	req := c.openapiClient.Class01FundingPublicApiAPI.GetFundingRatePage(ctx).
-		ContractId(params.ContractID).
-		FilterSettlementFundingRate("true") // Only get settlement funding rates
+func (c *Client) GetFundingRate(ctx context.Context, params GetFundingRateParams) (*ResultPageDataFundingRate, error) {
+	url := fmt.Sprintf("%s/api/v1/public/funding/getFundingRatePage", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"contractId":                   params.ContractID,
+		"filterSettlementFundingRate": "true",
+	}
 
 	if params.Size != nil {
-		req = req.Size(fmt.Sprintf("%d", *params.Size))
+		queryParams["size"] = strconv.FormatInt(int64(*params.Size), 10)
 	}
 	if params.Offset != nil {
-		req = req.OffsetData(*params.Offset)
+		queryParams["offsetData"] = *params.Offset
 	}
 	if params.From != nil {
-		req = req.FilterBeginTimeInclusive(fmt.Sprintf("%d", *params.From))
+		queryParams["filterBeginTimeInclusive"] = strconv.FormatInt(*params.From, 10)
 	}
 	if params.To != nil {
-		req = req.FilterEndTimeExclusive(fmt.Sprintf("%d", *params.To))
+		queryParams["filterEndTimeExclusive"] = strconv.FormatInt(*params.To, 10)
 	}
 
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get funding rate: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != "SUCCESS" {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
-}
+	var result ResultPageDataFundingRate
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 
-// GetLatestFundingRateParams represents the parameters for GetLatestFundingRate
-type GetLatestFundingRateParams struct {
-	ContractID string
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
 // GetLatestFundingRate gets the latest funding rate for a contract
-func (c *Client) GetLatestFundingRate(ctx context.Context, params GetLatestFundingRateParams) (*openapi.ResultListFundingRate, error) {
-	req := c.openapiClient.Class01FundingPublicApiAPI.GetLatestFundingRate(ctx).
-		ContractId(params.ContractID)
+func (c *Client) GetLatestFundingRate(ctx context.Context, params GetLatestFundingRateParams) (*ResultListFundingRate, error) {
+	url := fmt.Sprintf("%s/api/v1/public/funding/getLatestFundingRate", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"contractId": params.ContractID,
+	}
 
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get latest funding rate: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != "SUCCESS" {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
+	var result ResultListFundingRate
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
+

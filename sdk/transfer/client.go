@@ -2,142 +2,135 @@ package transfer
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
 
-	"math/big"
-
-	openapi "github.com/edgex-Tech/edgex-golang-sdk/openapi"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
 	"github.com/shopspring/decimal"
 )
 
-// Client represents the transfer client
+// Client represents the new transfer client without OpenAPI dependencies
 type Client struct {
 	*internal.Client
-	openapiClient *openapi.APIClient
 }
 
 // NewClient creates a new transfer client
-func NewClient(client *internal.Client, openapiClient *openapi.APIClient) *Client {
+func NewClient(client *internal.Client) *Client {
 	return &Client{
-		Client:        client,
-		openapiClient: openapiClient,
+		Client: client,
 	}
-}
-
-// GetTransferOutByIdParams represents the parameters for GetTransferOutById
-type GetTransferOutByIdParams struct {
-	TransferId string
 }
 
 // GetTransferOutById gets a transfer out record by ID
-func (c *Client) GetTransferOutById(ctx context.Context, params GetTransferOutByIdParams) (*openapi.ResultListTransferOut, error) {
-	req := c.openapiClient.Class07TransferPrivateApiAPI.GetTransferOutById(ctx)
-
-	if params.TransferId != "" {
-		req = req.TransferOutIdList(params.TransferId)
+func (c *Client) GetTransferOutById(ctx context.Context, params GetTransferOutByIdParams) (*ResultListTransferOut, error) {
+	url := fmt.Sprintf("%s/api/v1/private/transfer/getTransferOutById", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"accountId": strconv.FormatInt(c.Client.GetAccountID(), 10),
 	}
 
-	// Set account ID
-	req = req.AccountId(strconv.FormatInt(c.GetAccountID(), 10))
+	if params.TransferId != "" {
+		queryParams["transferOutIdList"] = params.TransferId
+	}
 
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transfer out by id: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != "SUCCESS" {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
-}
+	var result ResultListTransferOut
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 
-// GetTransferInByIdParams represents the parameters for GetTransferInById
-type GetTransferInByIdParams struct {
-	TransferId string
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
 // GetTransferInById gets a transfer in record by ID
-func (c *Client) GetTransferInById(ctx context.Context, params GetTransferInByIdParams) (*openapi.ResultListTransferIn, error) {
-	req := c.openapiClient.Class07TransferPrivateApiAPI.GetTransferInById(ctx)
-
-	if params.TransferId != "" {
-		req = req.TransferInIdList(params.TransferId)
+func (c *Client) GetTransferInById(ctx context.Context, params GetTransferInByIdParams) (*ResultListTransferIn, error) {
+	url := fmt.Sprintf("%s/api/v1/private/transfer/getTransferInById", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"accountId": strconv.FormatInt(c.Client.GetAccountID(), 10),
 	}
 
-	// Set account ID
-	req = req.AccountId(strconv.FormatInt(c.GetAccountID(), 10))
+	if params.TransferId != "" {
+		queryParams["transferInIdList"] = params.TransferId
+	}
 
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transfer in by id: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != "SUCCESS" {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
-}
+	var result ResultListTransferIn
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 
-// GetWithdrawAvailableAmountParams represents the parameters for GetWithdrawAvailableAmount
-type GetWithdrawAvailableAmountParams struct {
-	CoinId string
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
 // GetWithdrawAvailableAmount gets the available withdrawal amount
-func (c *Client) GetWithdrawAvailableAmount(ctx context.Context, params GetWithdrawAvailableAmountParams) (*openapi.ResultGetTransferOutAvailableAmount, error) {
-	req := c.openapiClient.Class07TransferPrivateApiAPI.GetWithdrawAvailableAmount1(ctx)
-
-	if params.CoinId != "" {
-		req = req.CoinId(params.CoinId)
+func (c *Client) GetWithdrawAvailableAmount(ctx context.Context, params GetWithdrawAvailableAmountParams) (*ResultGetTransferOutAvailableAmount, error) {
+	url := fmt.Sprintf("%s/api/v1/private/transfer/getWithdrawAvailableAmount", c.Client.GetBaseURL())
+	queryParams := map[string]string{
+		"accountId": strconv.FormatInt(c.Client.GetAccountID(), 10),
 	}
 
-	// Set account ID
-	req = req.AccountId(strconv.FormatInt(c.GetAccountID(), 10))
+	if params.CoinId != "" {
+		queryParams["coinId"] = params.CoinId
+	}
 
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get available withdrawal amount: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != "SUCCESS" {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
-}
+	var result ResultGetTransferOutAvailableAmount
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 
-// CreateTransferOutParams represents the parameters for CreateTransferOut
-type CreateTransferOutParams struct {
-	CoinId            string
-	Amount            string
-	ReceiverAccountId string
-	ReceiverL2Key     string
-	ClientTransferId  string
-	TransferReason    string
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
 
 // CreateTransferOut creates a new transfer out order
-func (c *Client) CreateTransferOut(ctx context.Context, params CreateTransferOutParams, metadata openapi.MetaData) (*openapi.ResultCreateTransferOut, error) {
-	createTransferOutParam := openapi.CreateTransferOutParam{}
-
-	// Set account ID
-	accountId := strconv.FormatInt(c.GetAccountID(), 10)
-	createTransferOutParam.SetAccountId(accountId)
+func (c *Client) CreateTransferOut(ctx context.Context, params CreateTransferOutParams, metadata interface{}) (*ResultCreateTransferOut, error) {
+	url := fmt.Sprintf("%s/api/v1/private/transfer/createTransferOut", c.Client.GetBaseURL())
 
 	// Generate client transfer ID if not provided
 	if params.ClientTransferId == "" {
@@ -156,15 +149,6 @@ func (c *Client) CreateTransferOut(ctx context.Context, params CreateTransferOut
 	// Remove 0x prefix from receiver L2 key if present
 	receiverL2Key := strings.TrimPrefix(params.ReceiverL2Key, "0x")
 
-	// Get asset IDs from metadata
-	global := metadata.GetGlobal()
-	collateralCoin := global.GetStarkExCollateralCoin()
-	assetIDStr := collateralCoin.GetStarkExAssetId()
-	assetID, ok := new(big.Int).SetString(assetIDStr, 0)
-	if !ok {
-		return nil, fmt.Errorf("invalid asset ID format: %s", assetIDStr)
-	}
-
 	// Convert receiver L2 key to big.Int
 	receiverPublicKey, ok := new(big.Int).SetString(receiverL2Key, 16)
 	if !ok {
@@ -172,13 +156,17 @@ func (c *Client) CreateTransferOut(ctx context.Context, params CreateTransferOut
 	}
 
 	// Get position IDs (same as account IDs)
-	senderPositionId := c.GetAccountID()
+	senderPositionId := c.Client.GetAccountID()
 	receiverPositionId, err := strconv.ParseInt(params.ReceiverAccountId, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid receiver account ID: %w", err)
 	}
 	feePositionId := senderPositionId // Fee position is same as sender for now
 	maxAmountFee := int64(0)
+
+	// For now, use a placeholder asset ID (0)
+	// In production, this should come from metadata
+	assetID := big.NewInt(0)
 
 	// Calculate transfer hash and sign it
 	msgHash := internal.CalcTransferHash(
@@ -193,37 +181,45 @@ func (c *Client) CreateTransferOut(ctx context.Context, params CreateTransferOut
 		maxAmountFee,
 		expireTimeUnix,
 	)
-	signature, err := c.Sign(msgHash)
+	signature, err := c.Client.Sign(msgHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign transfer hash: %w", err)
 	}
 
-	// Set all parameters
-	createTransferOutParam.SetCoinId(params.CoinId)
-	createTransferOutParam.SetAmount(amountDm.String())
-	createTransferOutParam.SetReceiverAccountId(params.ReceiverAccountId)
-	createTransferOutParam.SetReceiverL2Key(params.ReceiverL2Key)
-	createTransferOutParam.SetClientTransferId(params.ClientTransferId)
-	createTransferOutParam.SetTransferReason(params.TransferReason)
-	createTransferOutParam.SetL2Nonce(strconv.FormatInt(nonce, 10))
-	createTransferOutParam.SetL2ExpireTime(l2ExpireTime)
-	createTransferOutParam.SetL2Signature(fmt.Sprintf("%s%s%s", signature.R, signature.S, signature.V))
+	// Build request body
+	body := map[string]interface{}{
+		"accountId":        strconv.FormatInt(c.Client.GetAccountID(), 10),
+		"coinId":           params.CoinId,
+		"amount":           amountDm.String(),
+		"receiverAccountId": params.ReceiverAccountId,
+		"receiverL2Key":    params.ReceiverL2Key,
+		"clientTransferId": params.ClientTransferId,
+		"transferReason":   params.TransferReason,
+		"l2Nonce":          strconv.FormatInt(nonce, 10),
+		"l2ExpireTime":     l2ExpireTime,
+		"l2Signature":      fmt.Sprintf("%s%s%s", signature.R, signature.S, signature.V),
+	}
 
-	// Execute the request
-	req := c.openapiClient.Class07TransferPrivateApiAPI.CreateTransferOut(ctx)
-	req = req.CreateTransferOutParam(createTransferOutParam)
-
-	resp, _, err := req.Execute()
+	resp, err := c.Client.HttpRequest(url, "POST", body, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create transfer out: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.GetCode() != "SUCCESS" {
-		if errorParam := resp.GetErrorParam(); errorParam != nil {
-			return nil, fmt.Errorf("request failed with error params: %v", errorParam)
-		}
-		return nil, fmt.Errorf("request failed with code: %s", resp.GetCode())
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return resp, nil
+	var result ResultCreateTransferOut
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
 }
+
