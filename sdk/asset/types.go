@@ -1,95 +1,156 @@
 package asset
 
-// Response types for asset API
+// PageDataAssetOrder represents paginated asset order data
+type PageDataAssetOrder struct {
+	DataList           []interface{} `json:"dataList,omitempty"`
+	NextPageOffsetData *string       `json:"nextPageOffsetData,omitempty"`
+}
 
-// BaseResponse is the base response structure
-type BaseResponse struct {
-	Code       string        `json:"code"`
-	Data       interface{}   `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+// GetCoinRate represents coin rate information
+type GetCoinRate struct {
+	Rate *string `json:"rate,omitempty"`
+}
+
+// CreateCrossWithdraw represents cross withdrawal information
+type CreateCrossWithdraw struct {
+	Id               *string `json:"id,omitempty"`
+	UserId           *string `json:"userId,omitempty"`
+	AccountId        *string `json:"accountId,omitempty"`
+	CoinId           *string `json:"coinId,omitempty"`
+	Amount           *string `json:"amount,omitempty"`
+	ReceiverAddress  *string `json:"receiverAddress,omitempty"`
+	ReceiverChainId  *string `json:"receiverChainId,omitempty"`
+	ClientWithdrawId *string `json:"clientWithdrawId,omitempty"`
+	Status           *string `json:"status,omitempty"`
+	CreatedTime      *string `json:"createdTime,omitempty"`
+	UpdatedTime      *string `json:"updatedTime,omitempty"`
+}
+
+// GetCrossWithdrawSignInfo represents cross withdraw sign info
+type GetCrossWithdrawSignInfo struct {
+	LpAccountId            *string `json:"lpAccountId,omitempty"`
+	CrossWithdrawL2Key     *string `json:"crossWithdrawL2Key,omitempty"`
+	CrossWithdrawMaxAmount *string `json:"crossWithdrawMaxAmount,omitempty"`
+	Fee                    *string `json:"fee,omitempty"`
+}
+
+// CreateFastWithdraw represents fast withdrawal information
+type CreateFastWithdraw struct {
+	Id               *string `json:"id,omitempty"`
+	UserId           *string `json:"userId,omitempty"`
+	AccountId        *string `json:"accountId,omitempty"`
+	CoinId           *string `json:"coinId,omitempty"`
+	Amount           *string `json:"amount,omitempty"`
+	ReceiverAddress  *string `json:"receiverAddress,omitempty"`
+	ClientWithdrawId *string `json:"clientWithdrawId,omitempty"`
+	Status           *string `json:"status,omitempty"`
+	CreatedTime      *string `json:"createdTime,omitempty"`
+	UpdatedTime      *string `json:"updatedTime,omitempty"`
+}
+
+// GetFastWithdrawSignInfo represents fast withdraw sign info
+type GetFastWithdrawSignInfo struct {
+	LpAccountId                     *string `json:"lpAccountId,omitempty"`
+	FastWithdrawL2Key               *string `json:"fastWithdrawL2Key,omitempty"`
+	FastWithdrawFactRegisterAddress *string `json:"fastWithdrawFactRegisterAddress,omitempty"`
+	FastWithdrawMaxAmount           *string `json:"fastWithdrawMaxAmount,omitempty"`
+	Fee                             *string `json:"fee,omitempty"`
+}
+
+// CreateNormalWithdraw represents normal withdrawal information
+type CreateNormalWithdraw struct {
+	Id               *string `json:"id,omitempty"`
+	UserId           *string `json:"userId,omitempty"`
+	AccountId        *string `json:"accountId,omitempty"`
+	CoinId           *string `json:"coinId,omitempty"`
+	Amount           *string `json:"amount,omitempty"`
+	ReceiverAddress  *string `json:"receiverAddress,omitempty"`
+	ClientWithdrawId *string `json:"clientWithdrawId,omitempty"`
+	Status           *string `json:"status,omitempty"`
+	CreatedTime      *string `json:"createdTime,omitempty"`
+	UpdatedTime      *string `json:"updatedTime,omitempty"`
+}
+
+// GetNormalWithdrawableAmount represents normal withdrawable amount
+type GetNormalWithdrawableAmount struct {
+	Amount *string `json:"amount,omitempty"`
 }
 
 // ResultPageDataAssetOrder represents paginated asset orders
 type ResultPageDataAssetOrder struct {
-	Code       string        `json:"code"`
-	Data       *PageData     `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
-}
-
-// PageData represents pagination data
-type PageData struct {
-	List       []interface{} `json:"list"`
-	OffsetData string        `json:"offsetData"`
+	Code       string              `json:"code"`
+	Data       *PageDataAssetOrder `json:"data"`
+	ErrorParam interface{}         `json:"errorParam"`
 }
 
 // ResultGetCoinRate represents coin rate information
 type ResultGetCoinRate struct {
-	Code       string        `json:"code"`
-	Data       interface{}   `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string       `json:"code"`
+	Data       *GetCoinRate `json:"data"`
+	ErrorParam interface{}  `json:"errorParam"`
 }
 
 // ResultListCrossWithdraw represents list of cross withdrawals
 type ResultListCrossWithdraw struct {
-	Code       string        `json:"code"`
-	Data       []interface{} `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string                `json:"code"`
+	Data       []CreateCrossWithdraw `json:"data"`
+	ErrorParam interface{}           `json:"errorParam"`
 }
 
 // ResultGetCrossWithdrawSignInfo represents cross withdraw sign info
 type ResultGetCrossWithdrawSignInfo struct {
-	Code       string        `json:"code"`
-	Data       interface{}   `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string                    `json:"code"`
+	Data       *GetCrossWithdrawSignInfo `json:"data"`
+	ErrorParam interface{}               `json:"errorParam"`
 }
 
 // ResultListFastWithdraw represents list of fast withdrawals
 type ResultListFastWithdraw struct {
-	Code       string        `json:"code"`
-	Data       []interface{} `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string               `json:"code"`
+	Data       []CreateFastWithdraw `json:"data"`
+	ErrorParam interface{}          `json:"errorParam"`
 }
 
 // ResultGetFastWithdrawSignInfo represents fast withdraw sign info
 type ResultGetFastWithdrawSignInfo struct {
-	Code       string        `json:"code"`
-	Data       interface{}   `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string                   `json:"code"`
+	Data       *GetFastWithdrawSignInfo `json:"data"`
+	ErrorParam interface{}              `json:"errorParam"`
 }
 
 // ResultListNormalWithdraw represents list of normal withdrawals
 type ResultListNormalWithdraw struct {
-	Code       string        `json:"code"`
-	Data       []interface{} `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string                 `json:"code"`
+	Data       []CreateNormalWithdraw `json:"data"`
+	ErrorParam interface{}            `json:"errorParam"`
 }
 
 // ResultGetNormalWithdrawableAmount represents normal withdrawable amount
 type ResultGetNormalWithdrawableAmount struct {
-	Code       string        `json:"code"`
-	Data       interface{}   `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string                       `json:"code"`
+	Data       *GetNormalWithdrawableAmount `json:"data"`
+	ErrorParam interface{}                  `json:"errorParam"`
 }
 
 // ResultCreateNormalWithdraw represents result of creating normal withdrawal
 type ResultCreateNormalWithdraw struct {
-	Code       string        `json:"code"`
-	Data       interface{}   `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string                `json:"code"`
+	Data       *CreateNormalWithdraw `json:"data"`
+	ErrorParam interface{}           `json:"errorParam"`
 }
 
 // ResultCreateCrossWithdraw represents result of creating cross withdrawal
 type ResultCreateCrossWithdraw struct {
-	Code       string        `json:"code"`
-	Data       interface{}   `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string               `json:"code"`
+	Data       *CreateCrossWithdraw `json:"data"`
+	ErrorParam interface{}          `json:"errorParam"`
 }
 
 // ResultCreateFastWithdraw represents result of creating fast withdrawal
 type ResultCreateFastWithdraw struct {
-	Code       string        `json:"code"`
-	Data       interface{}   `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string              `json:"code"`
+	Data       *CreateFastWithdraw `json:"data"`
+	ErrorParam interface{}         `json:"errorParam"`
 }
 
 // Request parameter types
@@ -150,12 +211,9 @@ type GetNormalWithdrawableAmountParams struct {
 
 // CreateNormalWithdrawParams represents parameters for CreateNormalWithdraw
 type CreateNormalWithdrawParams struct {
-	CoinId           string
-	Amount           string
-	EthAddress       string
-	ClientWithdrawId string
-	ExpireTime       string
-	L2Signature      string
+	CoinId     string
+	Amount     string // amount.Mul(decimal.NewFromInt(1000000)).Floor().String()
+	EthAddress string
 }
 
 // CreateCrossWithdrawParams represents parameters for CreateCrossWithdraw

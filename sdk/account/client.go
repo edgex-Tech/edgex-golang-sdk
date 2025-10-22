@@ -46,7 +46,7 @@ func (c *Client) GetAccountAsset(ctx context.Context) (*GetAccountAssetResponse,
 	}
 
 	if result.Code != "SUCCESS" {
-		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+		return nil, fmt.Errorf("request failed with code: %s, errorParam: %v", result.Code, result.ErrorParam)
 	}
 
 	return &result, nil
@@ -87,18 +87,6 @@ func (c *Client) GetAccountPositions(ctx context.Context) (*ListPositionResponse
 	return result, nil
 }
 
-// GetPositionTransactionPageParams represents the parameters for GetPositionTransactionPage
-type GetPositionTransactionPageParams struct {
-	Size                   int32
-	OffsetData             string
-	FilterCoinIDList       []string
-	FilterContractIDList   []string
-	FilterTypeList         []string
-	FilterStartCreatedTime int64
-	FilterEndCreatedTime   int64
-	FilterCloseOnly        *bool
-	FilterOpenOnly         *bool
-}
 
 // GetPositionTransactionPage gets the position transactions with pagination
 func (c *Client) GetPositionTransactionPage(ctx context.Context, params GetPositionTransactionPageParams) (*PageDataPositionTransactionResponse, error) {
@@ -154,16 +142,6 @@ func (c *Client) GetPositionTransactionPage(ctx context.Context, params GetPosit
 	}
 
 	return &result, nil
-}
-
-// GetCollateralTransactionPageParams represents the parameters for GetCollateralTransactionPage
-type GetCollateralTransactionPageParams struct {
-	Size                   int32
-	OffsetData             string
-	FilterCoinIDList       []string
-	FilterTypeList         []string
-	FilterStartCreatedTime int64
-	FilterEndCreatedTime   int64
 }
 
 // GetCollateralTransactionPage gets the collateral transactions with pagination
@@ -246,17 +224,6 @@ func (c *Client) GetPositionByContractID(ctx context.Context, contractIDs []stri
 	}
 
 	return &result, nil
-}
-
-// GetPositionTermPageParams represents the parameters for GetPositionTermPage
-type GetPositionTermPageParams struct {
-	Size                   int32
-	OffsetData             string
-	FilterCoinIDList       []string
-	FilterContractIDList   []string
-	FilterIsLongPosition   *bool
-	FilterStartCreatedTime int64
-	FilterEndCreatedTime   int64
 }
 
 // GetPositionTermPage gets position terms with pagination
@@ -371,16 +338,6 @@ func (c *Client) GetAccountByID(ctx context.Context) (*AccountResponse, error) {
 	}
 
 	return &result, nil
-}
-
-// GetAccountAssetSnapshotPageParams represents the parameters for GetAccountAssetSnapshotPage
-type GetAccountAssetSnapshotPageParams struct {
-	Size            int32
-	OffsetData      string
-	CoinID          string
-	FilterTimeTag   *int32
-	FilterStartTime int64
-	FilterEndTime   int64
 }
 
 // GetAccountAssetSnapshotPage gets account asset snapshots with pagination

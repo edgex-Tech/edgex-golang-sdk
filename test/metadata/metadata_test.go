@@ -15,13 +15,13 @@ func TestGetMetadata(t *testing.T) {
 	result, err := client.GetMetaData(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "SUCCESS", result.GetCode())
+	assert.Equal(t, "SUCCESS", result.Code)
 
-	data := result.GetData()
+	data := result.Data
 	assert.NotNil(t, data)
 
 	// Test some fields to ensure we got valid data
-	assert.NotEmpty(t, data.GetCoinList())
-	assert.NotEmpty(t, data.GetContractList())
-	assert.NotNil(t, data.GetGlobal())
+	assert.NotEmpty(t, data.CoinList)
+	assert.NotEmpty(t, data.ContractList)
+	assert.NotNil(t, data.Global)
 }

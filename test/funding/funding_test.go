@@ -25,14 +25,16 @@ func TestGetFundingRate(t *testing.T) {
 	t.Logf("Funding Rate: %s", string(jsonData))
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 
-	data := resp.GetData()
+	data := resp.Data
 	assert.NotNil(t, data)
-	assert.NotEmpty(t, data.GetDataList())
-	for _, rate := range data.GetDataList() {
-		assert.NotEmpty(t, rate.GetContractId())
-		assert.NotEmpty(t, rate.GetFundingRate())
+	assert.NotEmpty(t, data.DataList)
+	for _, rate := range data.DataList {
+		// Verify FundingRate data structure
+		assert.NotNil(t, rate)
+		assert.NotEmpty(t, rate.ContractId)
+		assert.NotEmpty(t, rate.FundingRate)
 	}
 }
 
@@ -50,13 +52,15 @@ func TestGetLatestFundingRate(t *testing.T) {
 	t.Logf("Latest Funding Rate: %s", string(jsonData))
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 
-	data := resp.GetData()
+	data := resp.Data
 	assert.NotNil(t, data)
 	assert.NotEmpty(t, data)
 	for _, rate := range data {
-		assert.NotEmpty(t, rate.GetContractId())
-		assert.NotEmpty(t, rate.GetFundingRate())
+		// Verify FundingRate data structure
+		assert.NotNil(t, rate)
+		assert.NotEmpty(t, rate.ContractId)
+		assert.NotEmpty(t, rate.FundingRate)
 	}
 }

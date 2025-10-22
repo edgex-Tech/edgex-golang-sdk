@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	openapi "github.com/edgex-Tech/edgex-golang-sdk/openapi"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/edgex-Tech/edgex-golang-sdk/starkcurve"
@@ -21,11 +20,10 @@ import (
 
 // Client represents the base client with common functionality
 type Client struct {
-	httpClient    *http.Client
-	baseURL       string
-	accountID     int64
-	starkPriKey   string
-	openapiClient *openapi.APIClient
+	httpClient  *http.Client
+	baseURL     string
+	accountID   int64
+	starkPriKey string
 }
 
 // ClientConfig holds the configuration for creating a new Client
@@ -37,20 +35,11 @@ type ClientConfig struct {
 
 // NewClient creates a new base client
 func NewClient(cfg *ClientConfig) (*Client, error) {
-	openapiConfig := openapi.NewConfiguration()
-	openapiConfig.Servers = []openapi.ServerConfiguration{
-		{
-			URL: cfg.BaseURL,
-		},
-	}
-	openapiClient := openapi.NewAPIClient(openapiConfig)
-
 	return &Client{
-		httpClient:    &http.Client{Timeout: 30 * time.Second},
-		baseURL:       cfg.BaseURL,
-		accountID:     cfg.AccountID,
-		starkPriKey:   cfg.StarkPriKey,
-		openapiClient: openapiClient,
+		httpClient:  &http.Client{Timeout: 30 * time.Second},
+		baseURL:     cfg.BaseURL,
+		accountID:   cfg.AccountID,
+		starkPriKey: cfg.StarkPriKey,
 	}, nil
 }
 

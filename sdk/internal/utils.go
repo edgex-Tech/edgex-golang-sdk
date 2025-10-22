@@ -141,30 +141,34 @@ func CalcTransferHash(assetID, assetIdFee, receiverPublicKey *big.Int, senderPos
 }
 
 // CalcWithdrawalHash calculates the hash for a withdrawal
-func CalcWithdrawalHash(assetID *big.Int, ethAddress string, positionId, nonce, amount, expirationTimestamp int64) []byte {
+func CalcWithdrawalHash(assetID, ethAddress, positionId, nonce, amount, expirationTimestamp string) []byte {
 	// Remove ethAddress 0x prefix if exists
 	if len(ethAddress) > 2 && ethAddress[:2] == "0x" {
 		ethAddress = ethAddress[2:]
 	}
+	ethAddressBN, _ := big.NewInt(0).SetString(ethAddress, 16)
+	if len(assetID) > 2 && assetID[:2] == "0x" {
+		assetID = assetID[2:]
+	}
+	assetIDInt, _ := big.NewInt(0).SetString(assetID, 16)
 
 	// Part 1: Hash asset ID with ETH address
-	assetIDInt := big.NewInt(0).Set(assetID)
-	ethAddressBN, _ := big.NewInt(0).SetString(ethAddress, 16)
 	part1 := starkcurve.CalcHash([]*big.Int{assetIDInt, ethAddressBN})
 
 	// Part 2: Pack withdrawal data
 	packedWithdrawal := big.NewInt(WithdrawalToAddress) // WITHDRAWAL_PREFIX = 7
 	packedWithdrawal = packedWithdrawal.Lsh(packedWithdrawal, 64)
-	positionIdInt := big.NewInt(positionId)
+	positionIdInt := ToBigInt(positionId)
 	packedWithdrawal = packedWithdrawal.Add(packedWithdrawal, positionIdInt)
 	packedWithdrawal = packedWithdrawal.Lsh(packedWithdrawal, 32)
-	nonceInt := big.NewInt(nonce)
+	nonceInt := ToBigInt(nonce)
 	packedWithdrawal = packedWithdrawal.Add(packedWithdrawal, nonceInt)
 	packedWithdrawal = packedWithdrawal.Lsh(packedWithdrawal, 64)
-	amountInt := big.NewInt(amount)
+	amountInt := ToBigInt(amount)
+	println(amount, amountInt)
 	packedWithdrawal = packedWithdrawal.Add(packedWithdrawal, amountInt)
 	packedWithdrawal = packedWithdrawal.Lsh(packedWithdrawal, 32)
-	expirationInt := big.NewInt(expirationTimestamp)
+	expirationInt := ToBigInt(expirationTimestamp)
 	packedWithdrawal = packedWithdrawal.Add(packedWithdrawal, expirationInt)
 	packedWithdrawal = packedWithdrawal.Lsh(packedWithdrawal, 49) // WITHDRAWAL_PADDING_BITS = 49
 
@@ -223,7 +227,33 @@ func GetValue(value interface{}) string {
 	}
 }
 
+// GetRandomClientId 获取随机客户端ID
 func GetRandomClientId() string {
 	nanoTimestamp := time.Now().UnixNano()
 	return strconv.FormatInt(nanoTimestamp, 10)
+}
+
+// 辅助函数
+func ToBigInt(number string) *big.Int {
+	if number == "" {
+		return big.NewInt(0)
+	}
+	if strings.HasPrefix(number, "0x") {
+		val, _ := new(big.Int).SetString(number[2:], 16)
+		return val
+	}
+	val, _ := new(big.Int).SetString(number, 10)
+	return val
+}
+
+func HexToBigInteger(hex string) (*big.Int, error) {
+	if len(hex) > 2 && hex[:2] == "0x" {
+		hex = hex[2:]
+	}
+	result := new(big.Int)
+	result, ok := result.SetString(hex, 16)
+	if !ok {
+		return nil, fmt.Errorf("invalid hex string: %s", hex)
+	}
+	return result, nil
 }

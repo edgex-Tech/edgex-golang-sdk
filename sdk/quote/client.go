@@ -86,12 +86,14 @@ func (c *Client) GetKLine(ctx context.Context, params GetKLineParams) (*ResultPa
 	url := fmt.Sprintf("%s/api/v1/public/quote/getKline", c.Client.GetBaseURL())
 	queryParams := map[string]string{
 		"contractId": params.ContractID,
-		"klineType":  params.Interval,
+		"klineType":  string(params.Interval),
+		"priceType":  string(params.PriceType),
 		"size":       strconv.FormatInt(int64(params.Size), 10),
 	}
 
-	if params.PriceType != "" {
-		queryParams["priceType"] = params.PriceType
+	// Add optional parameters
+	if params.OffsetData != "" {
+		queryParams["offsetData"] = params.OffsetData
 	}
 	if params.From != nil {
 		queryParams["filterBeginKlineTimeInclusive"] = strconv.FormatInt(*params.From, 10)
@@ -99,6 +101,7 @@ func (c *Client) GetKLine(ctx context.Context, params GetKLineParams) (*ResultPa
 	if params.To != nil {
 		queryParams["filterEndKlineTimeExclusive"] = strconv.FormatInt(*params.To, 10)
 	}
+	fmt.Println(queryParams)
 
 	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {
@@ -163,12 +166,12 @@ func (c *Client) GetMultiContractKLine(ctx context.Context, params GetMultiContr
 	url := fmt.Sprintf("%s/api/v1/public/quote/getMultiContractKline", c.Client.GetBaseURL())
 	queryParams := map[string]string{
 		"contractIdList": strings.Join(params.ContractIDs, ","),
-		"klineType":      params.Interval,
+		"klineType":      string(params.Interval),
 		"size":           strconv.FormatInt(int64(params.Size), 10),
 	}
 
 	if params.PriceType != "" {
-		queryParams["priceType"] = params.PriceType
+		queryParams["priceType"] = string(params.PriceType)
 	}
 	if params.From != nil {
 		queryParams["filterBeginKlineTimeInclusive"] = strconv.FormatInt(*params.From, 10)
@@ -199,4 +202,3 @@ func (c *Client) GetMultiContractKLine(ctx context.Context, params GetMultiContr
 
 	return &result, nil
 }
-

@@ -38,9 +38,9 @@ func TestGetAllOrdersPage(t *testing.T) {
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("Asset Orders: %s", string(jsonData))
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 
-	data := resp.GetData()
+	data := resp.Data
 	assert.NotNil(t, data)
 	assert.NotNil(t, data.DataList)
 }
@@ -65,7 +65,7 @@ func TestGetCoinRate(t *testing.T) {
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("Coin Rate: %s", string(jsonData))
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 }
 
 func TestGetCrossWithdrawById(t *testing.T) {
@@ -83,7 +83,7 @@ func TestGetCrossWithdrawById(t *testing.T) {
 	t.Logf("Cross Withdraw: %s", string(jsonData))
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 }
 
 func TestGetCrossWithdrawSignInfo(t *testing.T) {
@@ -106,7 +106,7 @@ func TestGetCrossWithdrawSignInfo(t *testing.T) {
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("Cross Withdraw Sign Info: %s", string(jsonData))
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 }
 
 func TestGetFastWithdrawById(t *testing.T) {
@@ -124,7 +124,7 @@ func TestGetFastWithdrawById(t *testing.T) {
 	t.Logf("Fast Withdraw: %s", string(jsonData))
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 }
 
 func TestGetFastWithdrawSignInfo(t *testing.T) {
@@ -147,7 +147,7 @@ func TestGetFastWithdrawSignInfo(t *testing.T) {
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("Fast Withdraw Sign Info: %s", string(jsonData))
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 }
 
 func TestGetNormalWithdrawById(t *testing.T) {
@@ -165,7 +165,7 @@ func TestGetNormalWithdrawById(t *testing.T) {
 	t.Logf("Normal Withdraw: %s", string(jsonData))
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 }
 
 func TestGetNormalWithdrawableAmount(t *testing.T) {
@@ -187,7 +187,7 @@ func TestGetNormalWithdrawableAmount(t *testing.T) {
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("Normal Withdrawable Amount: %s", string(jsonData))
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 }
 
 func TestCreateNormalWithdraw(t *testing.T) {
@@ -196,16 +196,13 @@ func TestCreateNormalWithdraw(t *testing.T) {
 
 	ctx := test.GetTestContext()
 
-	params := asset.CreateNormalWithdrawParams{
-		CoinId:           "1000", // Example coin ID
-		Amount:           "1.000000",
-		EthAddress:       "0x1fB51aa234287C3CA1F957eA9AD0E148Bb814b7A",
-		ClientWithdrawId: "745410645654877",
-		ExpireTime:       "1735887600000",
-		L2Signature:      "007bf80407c6a7bb14f5ca3b848a5d908627993f23b073c902e359a6fa4a6a92040cea4c98e25e35ad1d8cc4e18758c463c45bf451299ce55aa49abbdb916d03",
+	params := &asset.CreateNormalWithdrawParams{
+		CoinId:     "1000", // Example coin ID
+		Amount:     "1.000000",
+		EthAddress: "0x1fB51aa234287C3CA1F957eA9AD0E148Bb814b7A",
 	}
 
-	resp, err := client.Asset.CreateNormalWithdraw(ctx, params)
+	resp, err := client.CreateNormalWithdraw(ctx, params)
 	if err != nil {
 		t.Logf("Error creating normal withdraw: %v", err)
 		t.Skip("Skipping test due to error")
@@ -214,7 +211,7 @@ func TestCreateNormalWithdraw(t *testing.T) {
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("Normal Withdraw Creation Response: %s", string(jsonData))
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 }
 
 func TestCreateCrossWithdraw(t *testing.T) {
@@ -248,5 +245,5 @@ func TestCreateCrossWithdraw(t *testing.T) {
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("Cross Withdraw Creation Response: %s", string(jsonData))
 	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.GetCode())
+	assert.Equal(t, "SUCCESS", resp.Code)
 }

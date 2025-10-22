@@ -148,6 +148,20 @@ func (c *Client) CreateOrder(ctx context.Context, params *order.CreateOrderParam
 	return c.Order.CreateOrder(ctx, params, metadataResp.Data)
 }
 
+func (c *Client) CreateNormalWithdraw(ctx context.Context, params *asset.CreateNormalWithdrawParams) (*asset.ResultCreateNormalWithdraw, error) {
+	// Get metadata first
+	metadataResp, err := c.GetMetaData(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get metadata: %w", err)
+	}
+
+	return c.Asset.CreateNormalWithdraw(ctx, params, metadataResp.Data)
+}
+
+// func (c *Client) GetCrossWithdrawSignInfo(ctx context.Context, params *asset.CreateCrossWithdrawParams) (*asset.ResultCreateCrossWithdraw, error) {
+// 	// Get metadata first
+// }
+
 // GetMaxOrderSize gets the maximum order size for a given contract and price
 func (c *Client) GetMaxOrderSize(ctx context.Context, contractID string, price decimal.Decimal) (*order.ResultGetMaxCreateOrderSize, error) {
 	priceFloat, _ := price.Float64()
@@ -270,7 +284,7 @@ func (c *Client) GetWithdrawAvailableAmount(ctx context.Context, params transfer
 }
 
 // CreateTransferOut creates a new transfer out order
-func (c *Client) CreateTransferOut(ctx context.Context, params transfer.CreateTransferOutParams) (*transfer.ResultCreateTransferOut, error) {
+func (c *Client) CreateTransferOut(ctx context.Context, params *transfer.CreateTransferOutParams) (*transfer.ResultCreateTransferOut, error) {
 	// Get metadata first
 	metadataResp, err := c.GetMetaData(ctx)
 	if err != nil {
@@ -328,19 +342,18 @@ func (c *Client) CreateMarketOrder(ctx context.Context, contractId, size, side s
 			return nil, fmt.Errorf("failed to get 24-hour quotes: %w", err)
 		}
 
-		data := quote.GetData()
+		data := quote.Data
 		if len(data) == 0 {
 			return nil, fmt.Errorf("no quote data available for contract: %s", contractId)
 		}
 
-		// Type assert to map to extract oracle price
-		tickerData, ok := data[0].(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid ticker data format")
+		// Extract oracle price from Ticker
+		tickerData := data[0]
+		oraclePriceStr := ""
+		if tickerData.OraclePrice != nil {
+			oraclePriceStr = *tickerData.OraclePrice
 		}
-
-		oraclePriceStr, ok := tickerData["oraclePrice"].(string)
-		if !ok {
+		if oraclePriceStr == "" {
 			return nil, fmt.Errorf("oracle price not found or invalid format")
 		}
 

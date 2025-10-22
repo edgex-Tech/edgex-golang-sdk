@@ -1,134 +1,156 @@
 package quote
 
+// KlineType represents the K-line interval type
+type KlineType string
+
+const (
+	KlineTypeUnknown  KlineType = "UNKNOWN_KLINE_TYPE"
+	KlineType1Minute  KlineType = "MINUTE_1"
+	KlineType5Minute  KlineType = "MINUTE_5"
+	KlineType15Minute KlineType = "MINUTE_15"
+	KlineType30Minute KlineType = "MINUTE_30"
+	KlineType1Hour    KlineType = "HOUR_1"
+	KlineType2Hour    KlineType = "HOUR_2"
+	KlineType4Hour    KlineType = "HOUR_4"
+	KlineType6Hour    KlineType = "HOUR_6"
+	KlineType8Hour    KlineType = "HOUR_8"
+	KlineType12Hour   KlineType = "HOUR_12"
+	KlineType1Day     KlineType = "DAY_1"
+	KlineType1Week    KlineType = "WEEK_1"
+	KlineType1Month   KlineType = "MONTH_1"
+)
+
+// PriceType represents the price type for K-line data
+type PriceType string
+
+const (
+	PriceTypeUnknown      PriceType = "UNKNOWN_PRICE_TYPE"
+	PriceTypeOraclePrice  PriceType = "ORACLE_PRICE"
+	PriceTypeIndexPrice   PriceType = "INDEX_PRICE"
+	PriceTypeLastPrice    PriceType = "LAST_PRICE"
+	PriceTypeAsk1Price    PriceType = "ASK1_PRICE"
+	PriceTypeBid1Price    PriceType = "BID1_PRICE"
+	PriceTypeOpenInterest PriceType = "OPEN_INTEREST"
+)
+
+// TickerSummary represents ticker summary data
+type TickerSummary struct {
+	Period       *string `json:"period,omitempty"`
+	Trades       *string `json:"trades,omitempty"`
+	Value        *string `json:"value,omitempty"`
+	OpenInterest *string `json:"openInterest,omitempty"`
+}
+
+// Ticker represents 24-hour ticker data
+type Ticker struct {
+	ContractId         *string `json:"contractId,omitempty"`
+	ContractName       *string `json:"contractName,omitempty"`
+	PriceChange        *string `json:"priceChange,omitempty"`
+	PriceChangePercent *string `json:"priceChangePercent,omitempty"`
+	Trades             *string `json:"trades,omitempty"`
+	Size               *string `json:"size,omitempty"`
+	Value              *string `json:"value,omitempty"`
+	High               *string `json:"high,omitempty"`
+	Low                *string `json:"low,omitempty"`
+	Open               *string `json:"open,omitempty"`
+	Close              *string `json:"close,omitempty"`
+	HighTime           *string `json:"highTime,omitempty"`
+	LowTime            *string `json:"lowTime,omitempty"`
+	StartTime          *string `json:"startTime,omitempty"`
+	EndTime            *string `json:"endTime,omitempty"`
+	LastPrice          *string `json:"lastPrice,omitempty"`
+	IndexPrice         *string `json:"indexPrice,omitempty"`
+	OraclePrice        *string `json:"oraclePrice,omitempty"`
+	OpenInterest       *string `json:"openInterest,omitempty"`
+	FundingRate        *string `json:"fundingRate,omitempty"`
+	FundingTime        *string `json:"fundingTime,omitempty"`
+	NextFundingTime    *string `json:"nextFundingTime,omitempty"`
+}
+
+// Kline represents K-line data
+type Kline struct {
+	KlineId       *string `json:"klineId,omitempty"`
+	ContractId    *string `json:"contractId,omitempty"`
+	ContractName  *string `json:"contractName,omitempty"`
+	KlineType     *string `json:"klineType,omitempty"`
+	KlineTime     *string `json:"klineTime,omitempty"`
+	PriceType     *string `json:"priceType,omitempty"`
+	Trades        *string `json:"trades,omitempty"`
+	Size          *string `json:"size,omitempty"`
+	Value         *string `json:"value,omitempty"`
+	High          *string `json:"high,omitempty"`
+	Low           *string `json:"low,omitempty"`
+	Open          *string `json:"open,omitempty"`
+	Close         *string `json:"close,omitempty"`
+	MakerBuySize  *string `json:"makerBuySize,omitempty"`
+	MakerBuyValue *string `json:"makerBuyValue,omitempty"`
+}
+
+// BookOrder represents an order book entry
+type BookOrder struct {
+	Price *string `json:"price,omitempty"`
+	Size  *string `json:"size,omitempty"`
+}
+
+// Depth represents order book depth data
+type Depth struct {
+	StartVersion *string     `json:"startVersion,omitempty"`
+	EndVersion   *string     `json:"endVersion,omitempty"`
+	Level        *int32      `json:"level,omitempty"`
+	ContractId   *string     `json:"contractId,omitempty"`
+	ContractName *string     `json:"contractName,omitempty"`
+	Asks         []BookOrder `json:"asks,omitempty"`
+	Bids         []BookOrder `json:"bids,omitempty"`
+	DepthType    *string     `json:"depthType,omitempty"`
+}
+
+// PageDataKline represents paginated K-line data
+type PageDataKline struct {
+	DataList           []Kline `json:"dataList,omitempty"`
+	NextPageOffsetData *string `json:"nextPageOffsetData,omitempty"`
+}
+
+// ContractMultiKline represents contract multi K-line data
+type ContractMultiKline struct {
+	ContractId *string `json:"contractId,omitempty"`
+	DataList   []Kline `json:"dataList,omitempty"`
+}
+
 // Response types for quote API
 
 // ResultGetTickerSummaryModel represents ticker summary
 type ResultGetTickerSummaryModel struct {
-	Code       string        `json:"code"`
-	Data       interface{}   `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string         `json:"code"`
+	Data       *TickerSummary `json:"data"`
+	ErrorParam interface{}    `json:"errorParam"`
 }
 
 // ResultListTicker represents list of tickers
 type ResultListTicker struct {
-	Code       string        `json:"code"`
-	Data       []interface{} `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string      `json:"code"`
+	Data       []Ticker    `json:"data"`
+	ErrorParam interface{} `json:"errorParam"`
 }
 
 // ResultPageDataKline represents paginated K-line data
 type ResultPageDataKline struct {
-	Code       string        `json:"code"`
-	Data       *PageData     `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
-}
-
-// PageData represents pagination data
-type PageData struct {
-	List       []interface{} `json:"list"`
-	OffsetData string        `json:"offsetData"`
+	Code       string         `json:"code"`
+	Data       *PageDataKline `json:"data"`
+	ErrorParam interface{}    `json:"errorParam"`
 }
 
 // ResultListDepth represents list of depth data
 type ResultListDepth struct {
-	Code       string        `json:"code"`
-	Data       []interface{} `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code       string      `json:"code"`
+	Data       []Depth     `json:"data"`
+	ErrorParam interface{} `json:"errorParam"`
 }
 
 // ResultListContractKline represents list of contract K-line data
 type ResultListContractKline struct {
-	Code       string        `json:"code"`
-	Data       []interface{} `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
-}
-
-// GetCode returns the Code field value
-func (r *ResultGetTickerSummaryModel) GetCode() string {
-	if r == nil {
-		return ""
-	}
-	return r.Code
-}
-
-// GetData returns the Data field value
-func (r *ResultGetTickerSummaryModel) GetData() interface{} {
-	if r == nil {
-		return nil
-	}
-	return r.Data
-}
-
-// GetCode returns the Code field value
-func (r *ResultListTicker) GetCode() string {
-	if r == nil {
-		return ""
-	}
-	return r.Code
-}
-
-// GetData returns the Data field value
-func (r *ResultListTicker) GetData() []interface{} {
-	if r == nil {
-		return nil
-	}
-	return r.Data
-}
-
-// GetCode returns the Code field value
-func (r *ResultPageDataKline) GetCode() string {
-	if r == nil {
-		return ""
-	}
-	return r.Code
-}
-
-// GetData returns the Data field value
-func (r *ResultPageDataKline) GetData() *PageData {
-	if r == nil {
-		return nil
-	}
-	return r.Data
-}
-
-// GetDataList returns the list of data
-func (p *PageData) GetDataList() []interface{} {
-	if p == nil {
-		return nil
-	}
-	return p.List
-}
-
-// GetCode returns the Code field value
-func (r *ResultListDepth) GetCode() string {
-	if r == nil {
-		return ""
-	}
-	return r.Code
-}
-
-// GetData returns the Data field value
-func (r *ResultListDepth) GetData() []interface{} {
-	if r == nil {
-		return nil
-	}
-	return r.Data
-}
-
-// GetCode returns the Code field value
-func (r *ResultListContractKline) GetCode() string {
-	if r == nil {
-		return ""
-	}
-	return r.Code
-}
-
-// GetData returns the Data field value
-func (r *ResultListContractKline) GetData() []interface{} {
-	if r == nil {
-		return nil
-	}
-	return r.Data
+	Code       string               `json:"code"`
+	Data       []ContractMultiKline `json:"data"`
+	ErrorParam interface{}          `json:"errorParam"`
 }
 
 // Request parameter types
@@ -136,9 +158,10 @@ func (r *ResultListContractKline) GetData() []interface{} {
 // GetKLineParams represents parameters for GetKLine
 type GetKLineParams struct {
 	ContractID string
-	Interval   string
+	Interval   KlineType
+	PriceType  PriceType
 	Size       int64
-	PriceType  string
+	OffsetData string
 	From       *int64
 	To         *int64
 }
@@ -153,9 +176,9 @@ type GetOrderBookDepthParams struct {
 // GetMultiContractKLineParams represents parameters for GetMultiContractKLine
 type GetMultiContractKLineParams struct {
 	ContractIDs []string
-	Interval    string
+	Interval    KlineType
 	Size        int64
-	PriceType   string
+	PriceType   PriceType
 	From        *int64
 	To          *int64
 }
