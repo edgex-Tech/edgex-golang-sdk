@@ -227,13 +227,11 @@ func GetValue(value interface{}) string {
 	}
 }
 
-// GetRandomClientId 获取随机客户端ID
 func GetRandomClientId() string {
 	nanoTimestamp := time.Now().UnixNano()
 	return strconv.FormatInt(nanoTimestamp, 10)
 }
 
-// 辅助函数
 func ToBigInt(number string) *big.Int {
 	if number == "" {
 		return big.NewInt(0)

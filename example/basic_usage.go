@@ -192,16 +192,4 @@ func main() {
 		log.Fatalf("Failed to create withdrawal: %v", err)
 	}
 	printJSON("create withdraw result:", createWithdrawResult)
-
-	/*
-		// WebSocket example
-		wsURL := os.Getenv("EDGEX_WS_URL")
-		if wsURL == "" {
-			wsURL = "wss://quote-testnet.edgex.exchange"
-		}
-
-		// WebSocket functionality would be implemented here
-		// This is a placeholder for WebSocket support
-		printJSON("WebSocket URL: %s\n", wsURL)
-	*/
 }
