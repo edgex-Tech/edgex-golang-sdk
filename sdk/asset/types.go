@@ -81,6 +81,7 @@ type ResultPageDataAssetOrder struct {
 	Code       string              `json:"code"`
 	Data       *PageDataAssetOrder `json:"data"`
 	ErrorParam interface{}         `json:"errorParam"`
+	ErrorMsg   string              `json:"msg"`
 }
 
 // ResultGetCoinRate represents coin rate information
@@ -88,6 +89,7 @@ type ResultGetCoinRate struct {
 	Code       string       `json:"code"`
 	Data       *GetCoinRate `json:"data"`
 	ErrorParam interface{}  `json:"errorParam"`
+	ErrorMsg   string       `json:"msg"`
 }
 
 // ResultListCrossWithdraw represents list of cross withdrawals
@@ -95,6 +97,7 @@ type ResultListCrossWithdraw struct {
 	Code       string                `json:"code"`
 	Data       []CreateCrossWithdraw `json:"data"`
 	ErrorParam interface{}           `json:"errorParam"`
+	ErrorMsg   string                `json:"msg"`
 }
 
 // ResultGetCrossWithdrawSignInfo represents cross withdraw sign info
@@ -102,6 +105,7 @@ type ResultGetCrossWithdrawSignInfo struct {
 	Code       string                    `json:"code"`
 	Data       *GetCrossWithdrawSignInfo `json:"data"`
 	ErrorParam interface{}               `json:"errorParam"`
+	ErrorMsg   string                    `json:"msg"`
 }
 
 // ResultListFastWithdraw represents list of fast withdrawals
@@ -109,6 +113,7 @@ type ResultListFastWithdraw struct {
 	Code       string               `json:"code"`
 	Data       []CreateFastWithdraw `json:"data"`
 	ErrorParam interface{}          `json:"errorParam"`
+	ErrorMsg   string               `json:"msg"`
 }
 
 // ResultGetFastWithdrawSignInfo represents fast withdraw sign info
@@ -116,6 +121,7 @@ type ResultGetFastWithdrawSignInfo struct {
 	Code       string                   `json:"code"`
 	Data       *GetFastWithdrawSignInfo `json:"data"`
 	ErrorParam interface{}              `json:"errorParam"`
+	ErrorMsg   string                   `json:"msg"`
 }
 
 // ResultListNormalWithdraw represents list of normal withdrawals
@@ -123,6 +129,7 @@ type ResultListNormalWithdraw struct {
 	Code       string                 `json:"code"`
 	Data       []CreateNormalWithdraw `json:"data"`
 	ErrorParam interface{}            `json:"errorParam"`
+	ErrorMsg   string                 `json:"msg"`
 }
 
 // ResultGetNormalWithdrawableAmount represents normal withdrawable amount
@@ -130,6 +137,7 @@ type ResultGetNormalWithdrawableAmount struct {
 	Code       string                       `json:"code"`
 	Data       *GetNormalWithdrawableAmount `json:"data"`
 	ErrorParam interface{}                  `json:"errorParam"`
+	ErrorMsg   string                       `json:"msg"`
 }
 
 // ResultCreateNormalWithdraw represents result of creating normal withdrawal
@@ -137,6 +145,7 @@ type ResultCreateNormalWithdraw struct {
 	Code       string                `json:"code"`
 	Data       *CreateNormalWithdraw `json:"data"`
 	ErrorParam interface{}           `json:"errorParam"`
+	ErrorMsg   string                `json:"msg"`
 }
 
 // ResultCreateCrossWithdraw represents result of creating cross withdrawal
@@ -144,6 +153,7 @@ type ResultCreateCrossWithdraw struct {
 	Code       string               `json:"code"`
 	Data       *CreateCrossWithdraw `json:"data"`
 	ErrorParam interface{}          `json:"errorParam"`
+	ErrorMsg   string               `json:"msg"`
 }
 
 // ResultCreateFastWithdraw represents result of creating fast withdrawal
@@ -151,6 +161,7 @@ type ResultCreateFastWithdraw struct {
 	Code       string              `json:"code"`
 	Data       *CreateFastWithdraw `json:"data"`
 	ErrorParam interface{}         `json:"errorParam"`
+	ErrorMsg   string              `json:"msg"`
 }
 
 // Request parameter types
@@ -212,7 +223,7 @@ type GetNormalWithdrawableAmountParams struct {
 // CreateNormalWithdrawParams represents parameters for CreateNormalWithdraw
 type CreateNormalWithdrawParams struct {
 	CoinId     string
-	Amount     string // amount.Mul(decimal.NewFromInt(1000000)).Floor().String()
+	Amount     string
 	EthAddress string
 }
 

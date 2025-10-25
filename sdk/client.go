@@ -144,8 +144,22 @@ func (c *Client) CreateOrder(ctx context.Context, params *order.CreateOrderParam
 	if err != nil {
 		return nil, fmt.Errorf("failed to get metadata: %w", err)
 	}
+	l2Price := params.Price
+	if params.Type == order.OrderTypeMarket {
+		price, err := c.getMarketOrderPrice(ctx, params.ContractId, params.Side)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get market order price: %w", err)
+		}
+		l2Price = *price
+	}
 
-	return c.Order.CreateOrder(ctx, params, metadataResp.Data)
+	// Convert l2Price string to decimal.Decimal
+	l2PriceDecimal, err := decimal.NewFromString(l2Price)
+	if err != nil {
+		return nil, fmt.Errorf("invalid price format: %w", err)
+	}
+
+	return c.Order.CreateOrder(ctx, params, metadataResp.Data, l2PriceDecimal)
 }
 
 func (c *Client) CreateNormalWithdraw(ctx context.Context, params *asset.CreateNormalWithdrawParams) (*asset.ResultCreateNormalWithdraw, error) {
@@ -299,21 +313,8 @@ func (c *Client) UpdateLeverageSetting(ctx context.Context, contractID string, l
 	return c.Account.UpdateLeverageSetting(ctx, contractID, leverage)
 }
 
-// CreateLimitOrder creates a new limit order with the given parameters
-func (c *Client) CreateLimitOrder(ctx context.Context, contractId, size, price, side string, clientOrderId *string) (*order.ResultCreateOrder, error) {
-	params := &order.CreateOrderParams{
-		ContractId:    contractId,
-		Size:          size,
-		Price:         price,
-		Side:          side,
-		Type:          order.OrderTypeLimit,
-		ClientOrderId: clientOrderId,
-	}
-	return c.CreateOrder(ctx, params)
-}
-
 // CreateMarketOrder creates a new market order with the given parameters
-func (c *Client) CreateMarketOrder(ctx context.Context, contractId, size, side string, clientOrderId *string) (*order.ResultCreateOrder, error) {
+func (c *Client) getMarketOrderPrice(ctx context.Context, contractId, side string) (*string, error) {
 	// Get metadata for contract info
 	metadataResp, err := c.GetMetaData(ctx)
 	if err != nil {
@@ -372,14 +373,5 @@ func (c *Client) CreateMarketOrder(ctx context.Context, contractId, size, side s
 		// For sell orders: use tick size
 		price = contract.TickSize
 	}
-
-	params := &order.CreateOrderParams{
-		ContractId:    contractId,
-		Size:          size,
-		Price:         price,
-		Side:          side,
-		Type:          order.OrderTypeMarket,
-		ClientOrderId: clientOrderId,
-	}
-	return c.CreateOrder(ctx, params)
+	return &price, nil
 }

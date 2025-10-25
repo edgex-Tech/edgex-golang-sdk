@@ -123,6 +123,7 @@ type ResultGetTickerSummaryModel struct {
 	Code       string         `json:"code"`
 	Data       *TickerSummary `json:"data"`
 	ErrorParam interface{}    `json:"errorParam"`
+	ErrorMsg   string         `json:"msg"`
 }
 
 // ResultListTicker represents list of tickers
@@ -130,6 +131,7 @@ type ResultListTicker struct {
 	Code       string      `json:"code"`
 	Data       []Ticker    `json:"data"`
 	ErrorParam interface{} `json:"errorParam"`
+	ErrorMsg   string      `json:"msg"`
 }
 
 // ResultPageDataKline represents paginated K-line data
@@ -137,6 +139,7 @@ type ResultPageDataKline struct {
 	Code       string         `json:"code"`
 	Data       *PageDataKline `json:"data"`
 	ErrorParam interface{}    `json:"errorParam"`
+	ErrorMsg   string       `json:"msg"`
 }
 
 // ResultListDepth represents list of depth data
@@ -144,6 +147,7 @@ type ResultListDepth struct {
 	Code       string      `json:"code"`
 	Data       []Depth     `json:"data"`
 	ErrorParam interface{} `json:"errorParam"`
+	ErrorMsg   string       `json:"msg"`
 }
 
 // ResultListContractKline represents list of contract K-line data
@@ -151,6 +155,7 @@ type ResultListContractKline struct {
 	Code       string               `json:"code"`
 	Data       []ContractMultiKline `json:"data"`
 	ErrorParam interface{}          `json:"errorParam"`
+	ErrorMsg   string       `json:"msg"`
 }
 
 // Request parameter types

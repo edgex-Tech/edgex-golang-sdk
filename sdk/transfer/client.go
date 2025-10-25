@@ -7,7 +7,6 @@ import (
 	"io"
 	"math/big"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
@@ -131,59 +130,28 @@ func (c *Client) GetWithdrawAvailableAmount(ctx context.Context, params GetWithd
 
 // CreateTransferOut creates a new transfer out order
 func (c *Client) CreateTransferOut(ctx context.Context, params *CreateTransferOutParams, metadata *metadatapkg.MetaData) (*ResultCreateTransferOut, error) {
-	// Find coin from metadata
-	var coin *metadatapkg.Coin
-	if metadata != nil && metadata.CoinList != nil {
-		for i := range metadata.CoinList {
-			if metadata.CoinList[i].CoinId == params.CoinId {
-				coin = &metadata.CoinList[i]
-				break
-			}
-		}
+	if metadata.Global == nil || metadata.Global.StarkExCollateralCoin == nil {
+		return nil, fmt.Errorf("metadata global is nil")
 	}
-	if coin == nil {
-		return nil, fmt.Errorf("coin not found: %s", params.CoinId)
-	}
+	coin := metadata.Global.StarkExCollateralCoin
 	assetID, err := internal.HexToBigInteger(coin.StarkExAssetId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse asset ID: %w", err)
 	}
-
-	// Get collateral coin from metadata
-	var collateralCoin *metadatapkg.Coin
-	if metadata != nil && metadata.Global != nil {
-		collateralCoin = metadata.Global.StarkExCollateralCoin
-	}
-
-	if collateralCoin == nil {
-		return nil, fmt.Errorf("collateral coin not found in metadata")
-	}
-	assetIDFee, err := internal.HexToBigInteger(collateralCoin.StarkExAssetId)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse asset ID fee: %w", err)
-	}
+	fmt.Println(coin.CoinId)
 
 	// Generate client transfer ID if not provided
-	clientTransferId := internal.GenerateUUID()
-
-	// Parse decimal amount
-	amountDm, err := decimal.NewFromString(params.Amount)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse amount: %w", err)
-	}
+	clientTransferId := internal.GetRandomClientId()
 
 	// Calculate nonce and expiration time
 	nonce := internal.CalcNonce(clientTransferId)
-	l2ExpireTime := time.Now().Add(14 * 24 * time.Hour).UnixMilli()
+	l2ExpireTime := params.ExpireTime.Add(14 * 24 * time.Hour).UnixMilli()
 	l2ExpireHour := l2ExpireTime / (60 * 60 * 1000)
 
-	// Remove 0x prefix from receiver L2 key if present
-	receiverL2Key := strings.TrimPrefix(params.ReceiverL2Key, "0x")
-
 	// Convert receiver L2 key to big.Int
-	receiverPublicKey, ok := new(big.Int).SetString(receiverL2Key, 16)
-	if !ok {
-		return nil, fmt.Errorf("invalid receiver L2 key format: %s", receiverL2Key)
+	receiverPublicKey, err := internal.HexToBigInteger(params.ReceiverL2Key)
+	if err != nil {
+		return nil, fmt.Errorf("invalid receiver L2 key format: %s", params.ReceiverL2Key)
 	}
 
 	// Parse receiver account ID
@@ -192,26 +160,22 @@ func (c *Client) CreateTransferOut(ctx context.Context, params *CreateTransferOu
 		return nil, fmt.Errorf("invalid receiver account ID: %w", err)
 	}
 
-	// Get position IDs
-	senderPositionId := c.Client.GetAccountID()
-	feePositionId := senderPositionId // Fee position is same as sender
-
-	// limitFee := amountDm.Mul(price).Mul(feeRate).Ceil()
-	// maxAmountFee := limitFee.Mul(usdtStarkExResolutionDecimal)
-	maxAmountFee := int64(0)
-
 	// Convert amount to protocol format (shift by 6 decimal places)
-	shiftFactor := decimal.NewFromInt(1000000)
-	amount := amountDm.Mul(shiftFactor).IntPart()
+	amountDm, err := decimal.NewFromString(params.Amount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse amount: %w", err)
+	}
+	amount := amountDm.Shift(6).IntPart()
+	maxAmountFee := int64(0)
 
 	// Calculate transfer hash and sign it
 	msgHash := internal.CalcTransferHash(
 		assetID,
-		assetIDFee,
+		big.NewInt(0),
 		receiverPublicKey,
-		senderPositionId,
+		c.Client.GetAccountID(),
 		receiverPositionId,
-		feePositionId,
+		c.Client.GetAccountID(),
 		nonce,
 		amount,
 		maxAmountFee,
@@ -226,14 +190,20 @@ func (c *Client) CreateTransferOut(ctx context.Context, params *CreateTransferOu
 	body := map[string]interface{}{
 		"accountId":         strconv.FormatInt(c.Client.GetAccountID(), 10),
 		"coinId":            params.CoinId,
-		"amount":            amountDm.String(),
+		"amount":            params.Amount,
 		"receiverAccountId": params.ReceiverAccountId,
 		"receiverL2Key":     params.ReceiverL2Key,
 		"clientTransferId":  clientTransferId,
 		"transferReason":    params.TransferReason,
 		"l2Nonce":           strconv.FormatInt(nonce, 10),
 		"l2ExpireTime":      strconv.FormatInt(l2ExpireTime, 10),
-		"l2Signature":       fmt.Sprintf("%s%s%s", signature.R, signature.S, signature.V),
+		"l2Signature":       fmt.Sprintf("%s%s", signature.R, signature.S),
+	}
+	if params.ExtraType != nil {
+		body["extraType"] = *params.ExtraType
+	}
+	if params.ExtraDataJson != nil {
+		body["extraDataJson"] = *params.ExtraDataJson
 	}
 
 	url := fmt.Sprintf("%s/api/v1/private/transfer/createTransferOut", c.Client.GetBaseURL())

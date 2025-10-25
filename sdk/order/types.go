@@ -1,5 +1,7 @@
 package order
 
+import "time"
+
 // TimeInForce constants
 type TimeInForce string
 
@@ -216,8 +218,8 @@ type CreateOrderParams struct {
 	Size          string    `json:"size"`
 	Type          OrderType `json:"type"`
 	Side          string    `json:"side"`
-	ClientOrderId *string   `json:"clientOrderId,omitempty"`
-	L2ExpireTime  *int64    `json:"l2ExpireTime,omitempty"`
+	ExpireTime    time.Time `json:"expireTime,omitempty"`
+	ClientOrderId *string   `json:"clientOrderId"`
 	TimeInForce   string    `json:"timeInForce,omitempty"`
 	ReduceOnly    bool      `json:"reduceOnly,omitempty"`
 }
@@ -234,6 +236,7 @@ type ResultCreateOrder struct {
 	Code       string       `json:"code"`
 	Data       *CreateOrder `json:"data"`
 	ErrorParam interface{}  `json:"errorParam"`
+	ErrorMsg   string       `json:"msg"`
 }
 
 // ResultPageDataOrder represents paginated order data
@@ -241,6 +244,7 @@ type ResultPageDataOrder struct {
 	Code       string         `json:"code"`
 	Data       *PageDataOrder `json:"data"`
 	ErrorParam interface{}    `json:"errorParam"`
+	ErrorMsg   string         `json:"msg"`
 }
 
 // ResultPageDataOrderFillTransaction represents paginated order fill transaction data
@@ -248,6 +252,7 @@ type ResultPageDataOrderFillTransaction struct {
 	Code       string                        `json:"code"`
 	Data       *PageDataOrderFillTransaction `json:"data"`
 	ErrorParam interface{}                   `json:"errorParam"`
+	ErrorMsg   string                        `json:"msg"`
 }
 
 // ResultListOrder represents list of orders
@@ -255,6 +260,7 @@ type ResultListOrder struct {
 	Code       string      `json:"code"`
 	Data       []Order     `json:"data"`
 	ErrorParam interface{} `json:"errorParam"`
+	ErrorMsg   string      `json:"msg"`
 }
 
 // ResultGetMaxCreateOrderSize represents the result of getting max order size
@@ -262,4 +268,5 @@ type ResultGetMaxCreateOrderSize struct {
 	Code       string                 `json:"code"`
 	Data       *GetMaxCreateOrderSize `json:"data"`
 	ErrorParam interface{}            `json:"errorParam"`
+	ErrorMsg   string                 `json:"msg"`
 }

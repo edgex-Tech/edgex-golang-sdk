@@ -83,6 +83,7 @@ type GetAccountAssetResponse struct {
 	Code       string            `json:"code"`
 	Data       *AccountAssetData `json:"data"`
 	ErrorParam interface{}       `json:"errorParam"`
+	ErrorMsg   string            `json:"msg"`
 }
 
 // AccountAssetData contains account asset information
@@ -109,6 +110,7 @@ type ListPositionResponse struct {
 	Code       string      `json:"code"`
 	Data       []Position  `json:"data"`
 	ErrorParam interface{} `json:"errorParam"`
+	ErrorMsg   string      `json:"msg"`
 }
 
 // GetPositionTransactionPageParams represents the parameters for GetPositionTransactionPage
@@ -129,6 +131,7 @@ type PageDataPositionTransactionResponse struct {
 	Code       string                       `json:"code"`
 	Data       *PageDataPositionTransaction `json:"data"`
 	ErrorParam interface{}                  `json:"errorParam"`
+	ErrorMsg   string                       `json:"msg"`
 }
 
 // GetCollateralTransactionPageParams represents the parameters for GetCollateralTransactionPage
@@ -146,6 +149,7 @@ type PageDataCollateralTransactionResponse struct {
 	Code       string                         `json:"code"`
 	Data       *PageDataCollateralTransaction `json:"data"`
 	ErrorParam interface{}                    `json:"errorParam"`
+	ErrorMsg   string                         `json:"msg"`
 }
 
 // GetPositionTermPageParams represents the parameters for GetPositionTermPage
@@ -164,6 +168,7 @@ type PageDataPositionTermResponse struct {
 	Code       string                `json:"code"`
 	Data       *PageDataPositionTerm `json:"data"`
 	ErrorParam interface{}           `json:"errorParam"`
+	ErrorMsg   string                `json:"msg"`
 }
 
 // ListCollateralResponse represents the response for GetCollateralByCoinID
@@ -171,6 +176,7 @@ type ListCollateralResponse struct {
 	Code       string       `json:"code"`
 	Data       []Collateral `json:"data"`
 	ErrorParam interface{}  `json:"errorParam"`
+	ErrorMsg   string       `json:"msg"`
 }
 
 // AccountResponse represents the response for GetAccountByID
@@ -178,6 +184,7 @@ type AccountResponse struct {
 	Code       string      `json:"code"`
 	Data       *Account    `json:"data"`
 	ErrorParam interface{} `json:"errorParam"`
+	ErrorMsg   string      `json:"msg"`
 }
 
 // Account represents account information
@@ -203,6 +210,7 @@ type PageDataAccountAssetSnapshotResponse struct {
 	Code       string                        `json:"code"`
 	Data       *PageDataAccountAssetSnapshot `json:"data"`
 	ErrorParam interface{}                   `json:"errorParam"`
+	ErrorMsg   string                        `json:"msg"`
 }
 
 // ListPositionTransactionResponse represents the response for GetPositionTransactionByID
@@ -210,6 +218,7 @@ type ListPositionTransactionResponse struct {
 	Code       string        `json:"code"`
 	Data       []interface{} `json:"data"`
 	ErrorParam interface{}   `json:"errorParam"`
+	ErrorMsg   string        `json:"msg"`
 }
 
 // ListCollateralTransactionResponse represents the response for GetCollateralTransactionByID
@@ -217,6 +226,7 @@ type ListCollateralTransactionResponse struct {
 	Code       string        `json:"code"`
 	Data       []interface{} `json:"data"`
 	ErrorParam interface{}   `json:"errorParam"`
+	ErrorMsg   string        `json:"msg"`
 }
 
 // GetAccountDeleverageLightResponse represents the response for GetAccountDeleverageLight
@@ -224,6 +234,7 @@ type GetAccountDeleverageLightResponse struct {
 	Code       string                     `json:"code"`
 	Data       *GetAccountDeleverageLight `json:"data"`
 	ErrorParam interface{}                `json:"errorParam"`
+	ErrorMsg   string                     `json:"msg"`
 }
 
 // UpdateLeverageSettingResponse represents the response for UpdateLeverageSetting
@@ -231,6 +242,7 @@ type UpdateLeverageSettingResponse struct {
 	Code       string                 `json:"code"`
 	Data       map[string]interface{} `json:"data"`
 	ErrorParam interface{}            `json:"errorParam"`
+	ErrorMsg   string                 `json:"msg"`
 }
 
 // Request parameter types

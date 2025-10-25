@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/asset"
@@ -46,6 +47,7 @@ func main() {
 		starkPrivateKey = "05495e45ffcda8224eeac73e279b804308c6dd93ea950f142baa7165968d90cb"
 	}
 
+	ctx := context.Background()
 	// Create a new client
 	client, err := sdk.NewClient(&sdk.ClientConfig{
 		BaseURL:     baseURL,
@@ -55,38 +57,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
-
-	ctx := context.Background()
-
-	// Create a limit order
-	orderParams1 := &order.CreateOrderParams{
-		ContractId: "10000001", // BNBUSDT
-		Size:       "0.001",
-		Price:      "114000.00",
-		Side:       order.OrderSideBuy,
-		Type:       order.OrderTypeLimit,
-	}
-	orderResult1, err := client.CreateOrder(ctx, orderParams1)
-	if err != nil {
-		log.Fatalf("Failed to create order: %v", err)
-	}
-	printJSON("Order created: %+v\n", orderResult1)
-
-	// Get active orders
-	activeOrders1, err := client.GetActiveOrders(ctx, &order.GetActiveOrderParams{
-		PaginationParams: order.PaginationParams{
-			Size: "10",
-		},
-		OrderFilterParams: order.OrderFilterParams{
-			FilterContractIdList: []string{"10000001"},
-		},
-	})
-	if err != nil {
-		log.Fatalf("Failed to get active orders: %v", err)
-	}
-	printJSON("Active Orders: %+v\n", activeOrders1)
-
-	return
 
 	// Get account assets
 	result, err := client.Account.GetAccountAsset(ctx)
@@ -113,14 +83,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get account positions: %v", err)
 	}
-	printJSON("Account Positions: %+v\n", positions)
+	printJSON("Account Positions:", positions)
 
 	// Get 24-hour market data for BNBUSDT (contract ID: 10000004)
 	quoteData, err := client.Get24HourQuote(ctx, "10000004")
 	if err != nil {
 		log.Fatalf("Failed to get 24-hour quote: %v", err)
 	}
-	printJSON("BNBUSDT Price: %+v\n", quoteData)
+	printJSON("BNBUSDT Price:", quoteData)
 
 	// Get K-line data for BTCUSDT (contract ID: 10000001)
 	klineParams := quote.GetKLineParams{
@@ -144,19 +114,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get order book depth: %v", err)
 	}
-	printJSON("Order Book Depth: %+v\n", depth)
+	printJSON("Order Book Depth:", depth)
 
 	transferResult, err := client.CreateTransferOut(ctx, &transfer.CreateTransferOutParams{
 		CoinId:            "1000",
 		Amount:            "10",
 		ReceiverAccountId: "675524849547870757",
-		ReceiverL2Key:     "0711bcc79aecf8533e94d9041d02159d45d239fa78f6bc2b1f2efede31e321b9",
-		TransferReason:    "test",
+		ReceiverL2Key:     "0x0711bcc79aecf8533e94d9041d02159d45d239fa78f6bc2b1f2efede31e321b9",
+		TransferReason:    transfer.USER_TRANSFER.String(),
+		ExpireTime:        time.Now().Add(time.Hour * 24),
 	})
 	if err != nil {
 		log.Fatalf("Failed to create transfer out: %v", err)
 	}
-	printJSON("Transfer out result: %+v\n", transferResult)
+	printJSON("Transfer out result:", transferResult)
 
 	// Create a limit order
 	orderParams := &order.CreateOrderParams{
@@ -165,12 +136,28 @@ func main() {
 		Price:      "600.00",
 		Side:       order.OrderSideBuy,
 		Type:       order.OrderTypeLimit,
+		ExpireTime: time.Now().Add(time.Hour * 24),
 	}
 	orderResult, err := client.CreateOrder(ctx, orderParams)
 	if err != nil {
 		log.Fatalf("Failed to create order: %v", err)
 	}
-	printJSON("Order created: %+v\n", orderResult)
+	printJSON("Order created:", orderResult)
+
+	// Create a market order
+	marketOrderParams := &order.CreateOrderParams{
+		ContractId: "10000004", // BNBUSDT
+		Size:       "0.01",
+		Price:      "0",
+		Side:       order.OrderSideBuy,
+		Type:       order.OrderTypeMarket,
+		ExpireTime: time.Now().Add(time.Hour * 24),
+	}
+	orderResult, err = client.CreateOrder(ctx, marketOrderParams)
+	if err != nil {
+		log.Fatalf("Failed to create order: %v", err)
+	}
+	printJSON("Order created:", orderResult)
 
 	// Get active orders
 	activeOrders, err := client.GetActiveOrders(ctx, &order.GetActiveOrderParams{
@@ -184,7 +171,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get active orders: %v", err)
 	}
-	printJSON("Active Orders: %+v\n", activeOrders)
+	printJSON("Active Orders:", activeOrders)
 	// Cancel the order
 	cancelParams := &order.CancelOrderParams{
 		OrderId: *orderResult.Data.OrderId,
@@ -193,26 +180,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to cancel order: %v", err)
 	}
-	printJSON("Order canceled: %+v\n", cancelResult)
+	printJSON("Order canceled:", cancelResult)
 
 	// Create a normal withdrawal
 	createWithdrawResult, err := client.CreateNormalWithdraw(ctx, &asset.CreateNormalWithdrawParams{
 		CoinId:     "1000",
 		Amount:     "10",
-		EthAddress: "0x94c2bf0f2254ed91a5fbbc8c9f3f3433f18480d8",
+		EthAddress: "0x94C2bF0F2254eD91a5fBbc8c9F3f3433f18480D8",
 	})
 	if err != nil {
 		log.Fatalf("Failed to create withdrawal: %v", err)
 	}
-	printJSON("create withdraw result: %+v\n", createWithdrawResult)
-
-	withdrawResult, err := client.Asset.GetNormalWithdrawById(ctx, asset.GetNormalWithdrawByIdParams{
-		NormalWithdrawIdList: *createWithdrawResult.Data.Id,
-	})
-	if err != nil {
-		log.Fatalf("Failed to get withdrawal by id: %v", err)
-	}
-	printJSON("withdrawResult: ", withdrawResult)
+	printJSON("create withdraw result:", createWithdrawResult)
 
 	/*
 		// WebSocket example

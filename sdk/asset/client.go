@@ -346,9 +346,9 @@ func (c *Client) CreateNormalWithdraw(ctx context.Context, params *CreateNormalW
 	clientRandomId := internal.GetRandomClientId()
 	nonceId := GetNonceFromClientId(clientRandomId)
 
-	l2ExpireTime := time.Now().UnixMilli() + (37 * 24 * 60 * 60 * 1000) // 14 days
+	l2ExpireTime := time.Now().UnixMilli() + (14 * 24 * 60 * 60 * 1000) // 14 days
 	l2ExpireHour := l2ExpireTime / (60 * 60 * 1000)
-	expireTime := strconv.FormatInt(l2ExpireHour, 10)
+	expireTime := strconv.FormatInt(l2ExpireTime, 10)
 
 	ammount, err := decimal.NewFromString(params.Amount)
 	if err != nil {
@@ -363,17 +363,14 @@ func (c *Client) CreateNormalWithdraw(ctx context.Context, params *CreateNormalW
 		accountID,
 		nonceId,
 		normalizedAmount,
-		expireTime,
+		strconv.FormatInt(l2ExpireHour, 10),
 	)
-	// fmt.Printf("assetId: %v,\nethAddress: %v,\naccountId: %v,\nclientRandomId: %v,\nnonceId: %v,\namount: %v,\nexpireTime: %v\n", coin.StarkExAssetId, params.EthAddress, accountID, clientRandomId, nonceId, normalizedAmount, expireTime)
-	// msgHash -> hex
-	fmt.Printf("msgHash: %v\n", hex.EncodeToString(msgHash))
 
 	signature, err := c.Client.Sign(msgHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign withdrawal hash: %w", err)
 	}
-	sig_str := fmt.Sprintf("%s%s%s", signature.R, signature.S, signature.V)
+	sig_str := fmt.Sprintf("%s%s", signature.R, signature.S)
 
 	body := map[string]interface{}{
 		"accountId":        accountID,

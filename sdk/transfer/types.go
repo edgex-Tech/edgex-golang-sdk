@@ -1,5 +1,44 @@
 package transfer
 
+import (
+	"time"
+)
+
+// TransferReasonType represents the type of transfer reason
+type TransferReasonType int
+
+const (
+	// USER_TRANSFER represents user initiated transfer
+	USER_TRANSFER TransferReasonType = 1
+	// FAST_WITHDRAW represents fast withdrawal
+	FAST_WITHDRAW TransferReasonType = 2
+	// CROSS_DEPOSIT represents cross-chain deposit
+	CROSS_DEPOSIT TransferReasonType = 3
+	// CROSS_WITHDRAW represents cross-chain withdrawal
+	CROSS_WITHDRAW TransferReasonType = 4
+)
+
+// String returns the string representation of TransferReasonType
+func (t TransferReasonType) String() string {
+	switch t {
+	case USER_TRANSFER:
+		return "USER_TRANSFER"
+	case FAST_WITHDRAW:
+		return "FAST_WITHDRAW"
+	case CROSS_DEPOSIT:
+		return "CROSS_DEPOSIT"
+	case CROSS_WITHDRAW:
+		return "CROSS_WITHDRAW"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+// Value returns the integer value of TransferReasonType
+func (t TransferReasonType) Value() int {
+	return int(t)
+}
+
 // TransferOut represents a transfer out record
 type TransferOut struct {
 	Id                           *string      `json:"id,omitempty"`
@@ -105,30 +144,30 @@ type L2Signature struct {
 
 // ResultListTransferOut represents list of transfer out records
 type ResultListTransferOut struct {
-	Code       string        `json:"code"`
-	Data       []TransferOut `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code     string        `json:"code"`
+	Data     []TransferOut `json:"data"`
+	ErrorMsg string        `json:"msg"`
 }
 
 // ResultListTransferIn represents list of transfer in records
 type ResultListTransferIn struct {
-	Code       string        `json:"code"`
-	Data       []TransferIn  `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	Code     string       `json:"code"`
+	Data     []TransferIn `json:"data"`
+	ErrorMsg string       `json:"msg"`
 }
 
 // ResultGetTransferOutAvailableAmount represents available transfer out amount
 type ResultGetTransferOutAvailableAmount struct {
-	Code       string                      `json:"code"`
-	Data       *GetTransferAvailableAmount `json:"data"`
-	ErrorParam []interface{}               `json:"errorParam"`
+	Code     string                      `json:"code"`
+	Data     *GetTransferAvailableAmount `json:"data"`
+	ErrorMsg string                      `json:"msg"`
 }
 
 // ResultCreateTransferOut represents the result of creating a transfer out
 type ResultCreateTransferOut struct {
-	Code       string             `json:"code"`
-	Data       *CreateTransferOut `json:"data"`
-	ErrorParam []interface{}      `json:"errorParam"`
+	Code     string             `json:"code"`
+	Data     *CreateTransferOut `json:"data"`
+	ErrorMsg string             `json:"msg"`
 }
 
 // Request parameter types
@@ -155,4 +194,7 @@ type CreateTransferOutParams struct {
 	ReceiverAccountId string
 	ReceiverL2Key     string
 	TransferReason    string
+	ExpireTime        time.Time
+	ExtraType         *string
+	ExtraDataJson     *string
 }

@@ -35,14 +35,16 @@ type PageDataFundingRate struct {
 type ResultPageDataFundingRate struct {
 	Code       string               `json:"code"`
 	Data       *PageDataFundingRate `json:"data"`
-	ErrorParam []interface{}        `json:"errorParam"`
+	ErrorParam interface{}          `json:"errorParam"`
+	ErrorMsg   string               `json:"msg"`
 }
 
 // ResultListFundingRate represents list of funding rates
 type ResultListFundingRate struct {
 	Code       string        `json:"code"`
 	Data       []FundingRate `json:"data"`
-	ErrorParam []interface{} `json:"errorParam"`
+	ErrorParam interface{}   `json:"errorParam"`
+	ErrorMsg   string        `json:"msg"`
 }
 
 // Request parameter types

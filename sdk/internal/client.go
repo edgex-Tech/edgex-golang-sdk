@@ -240,3 +240,10 @@ func (c *Client) Sign(messageHash []byte) (*L2Signature, error) {
 
 	return signature, nil
 }
+
+// func L2Sign(msgHashStr string) (*L2Signature, error) {
+// 	msgHashBig, _ := L2SignUtils.HexToBigInteger(msgHashStr)
+// 	privateKeyBig, _ := L2SignUtils.HexToBigInteger(privateKeyStr)
+// 	privateKey := ecdsa.Create(privateKeyBig)
+// 	return ecdsa.Sign(msgHashBig, privateKey)
+// }

@@ -14,6 +14,42 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestSign(t *testing.T) {
+	client, err := test.CreateTestClient()
+	assert.NoError(t, err)
+
+	// Test message hash - using a fixed hash for consistency
+	messageHash := []byte("test message hash for signing")
+
+	// Sign the same message multiple times
+	numTests := 5
+	signatures := make([]map[string]string, numTests)
+
+	for i := 0; i < numTests; i++ {
+		sig, err := client.Sign(messageHash)
+		assert.NoError(t, err, "Sign should not return error on iteration %d", i)
+		assert.NotNil(t, sig, "Signature should not be nil on iteration %d", i)
+		assert.NotEmpty(t, sig.R, "Signature R should not be empty on iteration %d", i)
+		assert.NotEmpty(t, sig.S, "Signature S should not be empty on iteration %d", i)
+
+		signatures[i] = map[string]string{
+			"R": sig.R,
+			"S": sig.S,
+			"V": sig.V,
+		}
+		t.Logf("Iteration %d - R: %s, S: %s", i, sig.R, sig.S)
+	}
+
+	// Verify that all signatures are identical (deterministic signing)
+	for i := 1; i < numTests; i++ {
+		assert.Equal(t, signatures[0]["R"], signatures[i]["R"], "Signature R should be identical across iterations")
+		assert.Equal(t, signatures[0]["S"], signatures[i]["S"], "Signature S should be identical across iterations")
+		assert.Equal(t, signatures[0]["V"], signatures[i]["V"], "Signature V should be identical across iterations")
+	}
+
+	t.Logf("✓ All %d signatures are identical - signing is deterministic", numTests)
+}
+
 func TestGetActiveOrders(t *testing.T) {
 	client, err := test.CreateTestClient()
 	assert.NoError(t, err)
@@ -179,7 +215,12 @@ func TestCreateMarketOrder(t *testing.T) {
 
 	t.Run("Market Buy Order", func(t *testing.T) {
 		// Create market buy order
-		result, err := client.CreateMarketOrder(ctx, contractID, size, order.OrderSideBuy, nil)
+		result, err := client.CreateOrder(ctx, &order.CreateOrderParams{
+			ContractId: contractID,
+			Size:       size,
+			Type:       order.OrderTypeMarket,
+			Side:       order.OrderSideBuy,
+		})
 		jsonData, _ := json.MarshalIndent(result, "", "  ")
 		t.Logf("Created Market Buy Order: %s", string(jsonData))
 
@@ -193,7 +234,12 @@ func TestCreateMarketOrder(t *testing.T) {
 
 	t.Run("Market Sell Order", func(t *testing.T) {
 		// Create market sell order
-		result, err := client.CreateMarketOrder(ctx, contractID, size, order.OrderSideSell, nil)
+		result, err := client.CreateOrder(ctx, &order.CreateOrderParams{
+			ContractId: contractID,
+			Size:       size,
+			Type:       order.OrderTypeMarket,
+			Side:       order.OrderSideSell,
+		})
 		jsonData, _ := json.MarshalIndent(result, "", "  ")
 		t.Logf("Created Market Sell Order: %s", string(jsonData))
 

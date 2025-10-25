@@ -27,7 +27,7 @@ func NewClient(client *internal.Client) *Client {
 }
 
 // CreateOrder creates a new order with the given parameters
-func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, metadata *metadatapkg.MetaData) (*ResultCreateOrder, error) {
+func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, metadata *metadatapkg.MetaData, l2Price decimal.Decimal) (*ResultCreateOrder, error) {
 	// Set default TimeInForce based on order type if not specified
 	if params.TimeInForce == "" {
 		switch params.Type {
@@ -52,39 +52,42 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 	if contract == nil {
 		return nil, fmt.Errorf("contract not found: %s", params.ContractId)
 	}
-	jsonBytes, _ := json.MarshalIndent(contract, "", "  ")
-	fmt.Printf("contract:%s\n", string(jsonBytes))
 
-	// Get collateral coin from metadata
-	var collateralCoin *metadatapkg.Coin
-	if metadata != nil && metadata.Global != nil {
-		collateralCoin = metadata.Global.StarkExCollateralCoin
+	var quoteCoin *metadatapkg.Coin
+	if metadata != nil && metadata.CoinList != nil {
+		for i := range metadata.CoinList {
+			if metadata.CoinList[i].CoinId == contract.QuoteCoinId {
+				quoteCoin = &metadata.CoinList[i]
+				break
+			}
+		}
 	}
 
-	if collateralCoin == nil {
-		return nil, fmt.Errorf("collateral coin not found in metadata")
+	if quoteCoin == nil {
+		return nil, fmt.Errorf("coin not found: %s", contract.QuoteCoinId)
 	}
 
-	shiftFactor := decimal.NewFromInt(1000000)
+	syntheticFactorBig, err := internal.HexToBigInteger(contract.StarkExResolution)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse synthetic factor: %w", err)
+	}
+	syntheticFactor := decimal.NewFromBigInt(syntheticFactorBig, 0)
+
+	shiftFactorBig, err := internal.HexToBigInteger(quoteCoin.StarkExResolution)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse shift factor: %w", err)
+	}
+	shiftFactor := decimal.NewFromBigInt(shiftFactorBig, 0)
 	// Parse decimal values
 	size, err := decimal.NewFromString(params.Size)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse size: %w", err)
 	}
 
-	price, err := decimal.NewFromString(params.Price)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse price: %w", err)
-	}
-
-	// Parse hex string to int
-	resolutionInt := internal.ToBigInt(contract.StarkExResolution)
-	resolution := decimal.NewFromBigInt(resolutionInt, 0)
-
 	// Calculate values
-	valueDm := price.Mul(size)
+	valueDm := l2Price.Mul(size)
 
-	amountSynthetic := size.Mul(resolution).IntPart()
+	amountSynthetic := size.Mul(syntheticFactor).IntPart()
 	amountCollateral := valueDm.Mul(shiftFactor).IntPart()
 
 	// Get fee rate from contract or use default
@@ -100,30 +103,23 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 	}
 
 	// Calculate fee amount in decimal with ceiling to integer
-	amountFeeDm := valueDm.Mul(feeRate).Ceil()
-	amountFeeStr := amountFeeDm.String()
-
-	// Convert to the required integer format for the protocol
-	// amount_fee = int(amount_fee_dm * 1000000)
-	amountFee := amountFeeDm.Mul(shiftFactor).IntPart()
+	limitFee := size.Mul(l2Price).Mul(feeRate).Ceil()
+	maxAmountFee := limitFee.Mul(shiftFactor)
 
 	clientOrderId := internal.GetRandomClientId()
-	if params.ClientOrderId != nil {
-		clientOrderId = *params.ClientOrderId
-	}
 
 	nonce := internal.CalcNonce(clientOrderId)
-	l2ExpireTime := time.Now().Add(14 * 24 * time.Hour).UnixMilli()
-	l2ExpireHour := l2ExpireTime // (60 * 60 * 1000)
+	l2ExpireTime := params.ExpireTime.Add(time.Hour * 9 * 24).UnixMilli()
+	l2ExpireHour := l2ExpireTime / (60 * 60 * 1000)
 
 	msgHash := internal.CalcLimitOrderHash(
 		contract.StarkExSyntheticAssetId,
-		collateralCoin.StarkExAssetId,
-		collateralCoin.StarkExAssetId,
+		quoteCoin.StarkExAssetId,
+		quoteCoin.StarkExAssetId,
 		params.Side == "BUY",
 		amountSynthetic,
 		amountCollateral,
-		amountFee,
+		maxAmountFee.BigInt().Int64(),
 		nonce,
 		c.Client.GetAccountID(),
 		l2ExpireHour,
@@ -133,7 +129,6 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 		return nil, fmt.Errorf("failed to sign withdrawal hash: %w", err)
 	}
 	sig_str := fmt.Sprintf("%s%s%s", signature.R, signature.S, signature.V)
-	fmt.Println("msgHash: ", sig_str)
 
 	// Build request body
 	body := map[string]interface{}{
@@ -143,18 +138,17 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 		"size":          params.Size,
 		"type":          string(params.Type),
 		"side":          params.Side,
-		"l2Signature":   sig_str,
 		"timeInForce":   params.TimeInForce,
 		"clientOrderId": clientOrderId,
+		"expireTime":    strconv.FormatInt(params.ExpireTime.UnixMilli(), 10),
 		"l2Nonce":       strconv.FormatInt(nonce, 10),
+		"l2Signature":   sig_str,
 		"l2ExpireTime":  strconv.FormatInt(l2ExpireTime, 10),
 		"l2Value":       valueDm.String(),
 		"l2Size":        params.Size,
-		"l2LimitFee":    amountFeeStr,
+		"l2LimitFee":    limitFee.String(),
 		"reduceOnly":    params.ReduceOnly,
 	}
-
-	fmt.Println("body: ", body)
 
 	url := fmt.Sprintf("%s/api/v1/private/order/createOrder", c.Client.GetBaseURL())
 	resp, err := c.Client.HttpRequest(url, "POST", body, nil)
