@@ -47,12 +47,15 @@ func main() {
 		starkPrivateKey = "05495e45ffcda8224eeac73e279b804308c6dd93ea950f142baa7165968d90cb"
 	}
 
+	metadataCacheTTL := time.Duration(2) * time.Minute
+
 	ctx := context.Background()
 	// Create a new client
 	client, err := sdk.NewClient(&sdk.ClientConfig{
-		BaseURL:     baseURL,
-		AccountID:   accountID,
-		StarkPriKey: starkPrivateKey,
+		BaseURL:          baseURL,
+		AccountID:        accountID,
+		StarkPriKey:      starkPrivateKey,
+		MetaDataCacheTTL: &metadataCacheTTL,
 	})
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)

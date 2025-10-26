@@ -26,20 +26,24 @@ import (
 // Client represents an EdgeX SDK client
 type Client struct {
 	*internal.Client
-	Order    *order.Client
-	Metadata *metadata.Client
-	Account  *account.Client
-	Quote    *quote.Client
-	Funding  *funding.Client
-	Transfer *transfer.Client
-	Asset    *asset.Client
+	metadataCache     *metadata.ResultMetaData
+	metadataCacheTime time.Time
+	metadataCacheTTL  *time.Duration
+	Order             *order.Client
+	Metadata          *metadata.Client
+	Account           *account.Client
+	Quote             *quote.Client
+	Funding           *funding.Client
+	Transfer          *transfer.Client
+	Asset             *asset.Client
 }
 
 // ClientConfig holds the configuration for creating a new Client
 type ClientConfig struct {
-	BaseURL     string
-	AccountID   int64
-	StarkPriKey string
+	BaseURL          string
+	AccountID        int64
+	StarkPriKey      string
+	MetaDataCacheTTL *time.Duration
 }
 
 // NewClient creates a new EdgeX SDK client
@@ -54,14 +58,15 @@ func NewClient(cfg *ClientConfig) (*Client, error) {
 	}
 
 	return &Client{
-		Client:   internalClient,
-		Order:    order.NewClient(internalClient),
-		Metadata: metadata.NewClient(internalClient),
-		Account:  account.NewClient(internalClient),
-		Quote:    quote.NewClient(internalClient),
-		Funding:  funding.NewClient(internalClient),
-		Transfer: transfer.NewClient(internalClient),
-		Asset:    asset.NewClient(internalClient),
+		Client:           internalClient,
+		metadataCacheTTL: cfg.MetaDataCacheTTL,
+		Order:            order.NewClient(internalClient),
+		Metadata:         metadata.NewClient(internalClient),
+		Account:          account.NewClient(internalClient),
+		Quote:            quote.NewClient(internalClient),
+		Funding:          funding.NewClient(internalClient),
+		Transfer:         transfer.NewClient(internalClient),
+		Asset:            asset.NewClient(internalClient),
 	}, nil
 }
 
@@ -129,7 +134,19 @@ func (i *requestInterceptor) RoundTrip(req *http.Request) (*http.Response, error
 
 // GetMetaData gets the exchange metadata
 func (c *Client) GetMetaData(ctx context.Context) (*metadata.ResultMetaData, error) {
-	return c.Metadata.GetMetaData(ctx)
+	if c.metadataCacheTTL != nil {
+		// Check if metadata is cached and not expired
+		if c.metadataCache != nil && time.Since(c.metadataCacheTime) < *c.metadataCacheTTL {
+			return c.metadataCache, nil
+		}
+		c.metadataCacheTime = time.Now()
+	}
+	metadataCache, err := c.Metadata.GetMetaData(ctx)
+	if err != nil {
+		return nil, err
+	}
+	c.metadataCache = metadataCache
+	return c.metadataCache, nil
 }
 
 // GetServerTime gets the current server time

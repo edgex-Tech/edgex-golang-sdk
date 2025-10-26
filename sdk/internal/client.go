@@ -28,9 +28,9 @@ type Client struct {
 
 // ClientConfig holds the configuration for creating a new Client
 type ClientConfig struct {
-	BaseURL     string
-	AccountID   int64
-	StarkPriKey string
+	BaseURL          string
+	AccountID        int64
+	StarkPriKey      string
 }
 
 // NewClient creates a new base client

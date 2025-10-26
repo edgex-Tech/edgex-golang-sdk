@@ -49,9 +49,10 @@ func CreateTestClient() (*sdk.Client, error) {
 	}
 
 	return sdk.NewClient(&sdk.ClientConfig{
-		BaseURL:     baseURL,
-		AccountID:   accountID,
-		StarkPriKey: starkPrivateKey,
+		BaseURL:          baseURL,
+		AccountID:        accountID,
+		StarkPriKey:      starkPrivateKey,
+		MetaDataCacheTTL: nil,
 	})
 }
 
