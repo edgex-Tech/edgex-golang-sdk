@@ -288,8 +288,10 @@ func (c *Client) GetNormalWithdrawableAmount(ctx context.Context, params GetNorm
 	url := fmt.Sprintf("%s/api/v1/private/assets/getNormalWithdrawableAmount", c.Client.GetBaseURL())
 	queryParams := map[string]string{}
 
+	accountID := strconv.FormatInt(c.Client.GetAccountID(), 10)
 	if params.Address != "" {
 		queryParams["address"] = params.Address
+		queryParams["accountId"] = accountID
 	}
 
 	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)

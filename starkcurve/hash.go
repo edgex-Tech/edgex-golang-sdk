@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
 )
 
 type StarkCfg struct {
@@ -30,27 +29,6 @@ var (
 	constPoints StarkPoints
 )
 
-func loadCfgFromFile() {
-
-	filePtr, err := os.Open("pedersen_params.json")
-	if err != nil {
-		fmt.Printf("Open file failed [Err:%v]\n", err.Error())
-		return
-	}
-	defer filePtr.Close()
-
-	// Create JSON decoder
-	decoder := json.NewDecoder(filePtr)
-	err = decoder.Decode(&cfg)
-	if err != nil {
-		fmt.Println("Decoder failed", err.Error())
-
-	} else {
-		fmt.Println("Decoder success")
-		//fmt.Printf("%#v\n", cfg)
-	}
-}
-
 func loadCfgFromData() {
 
 	dataBuffer := bytes.NewBuffer([]byte(starkcurveParams))
@@ -60,10 +38,6 @@ func loadCfgFromData() {
 	err := decoder.Decode(&cfg)
 	if err != nil {
 		fmt.Println("Decoder cfg failed", err.Error())
-
-	} else {
-		fmt.Println("Decoder cfg from data success")
-		//fmt.Printf("%#v\n", cfg)
 	}
 
 	dataBuffer1 := bytes.NewBuffer([]byte(constPointsParams))
@@ -73,15 +47,10 @@ func loadCfgFromData() {
 	err = decoder1.Decode(&constPoints)
 	if err != nil {
 		fmt.Println("Decoder constPoints failed", err.Error())
-
-	} else {
-		fmt.Println("Decoder constPoints from data success")
-		//fmt.Printf("%#v\n", cfg)
 	}
 }
 
 func init() {
-	//loadCfgFromFile()
 	loadCfgFromData()
 }
 
@@ -132,23 +101,6 @@ func CalcHash(input []*big.Int) []byte {
 	return shiftPointx.Bytes()
 
 }
-
-// function pedersen(input) {
-//     let point = shiftPoint;
-//     for (let i = 0; i < input.length; i++) {
-//         let x = new BN(input[i], 16);
-//         assert(x.gte(zeroBn) && x.lt(prime), 'Invalid input: ' + input[i]);
-//         for (let j = 0; j < 252; j++) {
-//             const pt = constantPoints[2 + i * 252 + j];
-//             assert(!point.getX().eq(pt.getX()));
-//             if (x.and(oneBn).toNumber() !== 0) {
-//                 point = point.add(pt);
-//             }
-//             x = x.shrn(1);
-//         }
-//     }
-
-// }
 
 // Reference https://github.com/apisit/rfc6979
 func Sign(privkey []byte, hash []byte) (*big.Int, *big.Int, error) {

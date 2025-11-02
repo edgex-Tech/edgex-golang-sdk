@@ -59,7 +59,10 @@ type CreateOrder struct {
 
 // GetMaxCreateOrderSize represents max order size information
 type GetMaxCreateOrderSize struct {
-	MaxSize *string `json:"maxSize,omitempty"`
+	MaxBuySize *string `json:"maxBuySize,omitempty"`
+	MaxSellSize *string `json:"maxSellSize,omitempty"`
+	Ask1Price *string `json:"ask1Price,omitempty"`
+	Bid1Price *string `json:"bid1Price,omitempty"`
 }
 
 // OrderFillTransaction represents an order fill transaction

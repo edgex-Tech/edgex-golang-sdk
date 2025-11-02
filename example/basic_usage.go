@@ -14,6 +14,7 @@ import (
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/quote"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/transfer"
+	"github.com/shopspring/decimal"
 )
 
 // printJSON prints the object as formatted JSON
@@ -35,7 +36,7 @@ func main() {
 
 	accountIDStr := os.Getenv("EDGEX_ACCOUNT_ID")
 	if accountIDStr == "" {
-		accountIDStr = "675511695258419841"
+		accountIDStr = "your_account_id"
 	}
 	accountID, err := strconv.ParseInt(accountIDStr, 10, 64)
 	if err != nil {
@@ -44,7 +45,7 @@ func main() {
 
 	starkPrivateKey := os.Getenv("EDGEX_STARK_PRIVATE_KEY")
 	if starkPrivateKey == "" {
-		starkPrivateKey = "05495e45ffcda8224eeac73e279b804308c6dd93ea950f142baa7165968d90cb"
+		starkPrivateKey = "your_private_key"
 	}
 
 	metadataCacheTTL := time.Duration(2) * time.Minute
@@ -119,6 +120,14 @@ func main() {
 	}
 	printJSON("Order Book Depth:", depth)
 
+	maxTransferAmount, err := client.Transfer.GetWithdrawAvailableAmount(ctx, transfer.GetWithdrawAvailableAmountParams{
+		CoinId: "1000",
+	})
+	if err != nil {
+		log.Fatalf("Failed to get maxTransferAmount: %v", err)
+	}
+	printJSON("Max transfer out amount", maxTransferAmount)
+
 	transferResult, err := client.CreateTransferOut(ctx, &transfer.CreateTransferOutParams{
 		CoinId:            "1000",
 		Amount:            "10",
@@ -131,6 +140,23 @@ func main() {
 		log.Fatalf("Failed to create transfer out: %v", err)
 	}
 	printJSON("Transfer out result:", transferResult)
+
+	assetOrdersParams := asset.GetAllOrdersPageParams{
+		StartTime: strconv.FormatInt(1761408000, 10),
+		EndTime:   strconv.FormatInt(1762099199, 10),
+		Size:      strconv.FormatInt(10, 10),
+	}
+	assetOrdersResp, err := client.Asset.GetAllOrdersPage(ctx, assetOrdersParams)
+	if err != nil {
+		log.Fatalf("Failed to get asset orders page: %v", err)
+	}
+	printJSON("GetAllOrdersPage", assetOrdersResp)
+
+	maxOrderSize, err := client.GetMaxOrderSize(ctx, "10000001", decimal.New(1000000, 10))
+	if err != nil {
+		log.Fatalf("Failed to get MaxOrderSize: %v", err)
+	}
+	printJSON("Order size:", maxOrderSize)
 
 	// Create a limit order
 	orderParams := &order.CreateOrderParams{
@@ -185,11 +211,19 @@ func main() {
 	}
 	printJSON("Order canceled:", cancelResult)
 
+	maxWithdrawalAmount, err := client.Asset.GetNormalWithdrawableAmount(ctx, asset.GetNormalWithdrawableAmountParams{
+		Address: "your_eth_address",
+	})
+	if err != nil {
+		log.Fatalf("Failed to get account max withdrawal amount: %v", err)
+	}
+	printJSON("GetNormalWithdrawableAmount Response", maxWithdrawalAmount)
+
 	// Create a normal withdrawal
 	createWithdrawResult, err := client.CreateNormalWithdraw(ctx, &asset.CreateNormalWithdrawParams{
 		CoinId:     "1000",
 		Amount:     "10",
-		EthAddress: "0x94C2bF0F2254eD91a5fBbc8c9F3f3433f18480D8",
+		EthAddress: "your_eth_address",
 	})
 	if err != nil {
 		log.Fatalf("Failed to create withdrawal: %v", err)

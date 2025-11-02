@@ -176,22 +176,25 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 
 // CancelOrder cancels a specific order
 func (c *Client) CancelOrder(ctx context.Context, params *CancelOrderParams) (interface{}, error) {
-	url := fmt.Sprintf("%s/api/v1/private/order/cancelOrder", c.Client.GetBaseURL())
+	var url string
 	accountID := strconv.FormatInt(c.Client.GetAccountID(), 10)
 
 	var body map[string]interface{}
 
 	if params.OrderId != "" {
+		url = fmt.Sprintf("%s/api/v1/private/order/cancelOrderById", c.Client.GetBaseURL())
 		body = map[string]interface{}{
 			"accountId":   accountID,
 			"orderIdList": []string{params.OrderId},
 		}
 	} else if params.ClientId != "" {
+		url = fmt.Sprintf("%s/api/v1/private/order/cancelOrderByClientOrderId", c.Client.GetBaseURL())
 		body = map[string]interface{}{
 			"accountId":         accountID,
 			"clientOrderIdList": []string{params.ClientId},
 		}
 	} else if params.ContractId != "" {
+		url = "/api/v1/private/order/cancelAllOrder"
 		body = map[string]interface{}{
 			"accountId":            accountID,
 			"filterContractIdList": []string{params.ContractId},
@@ -421,15 +424,15 @@ func (c *Client) GetOrdersByClientOrderID(ctx context.Context, clientOrderIDs []
 }
 
 // GetMaxOrderSize gets the maximum order size for a given contract and price
-func (c *Client) GetMaxOrderSize(ctx context.Context, contractID string, price float64) (*ResultGetMaxCreateOrderSize, error) {
+func (c *Client) GetMaxOrderSize(ctx context.Context, contractID string, price decimal.Decimal) (*ResultGetMaxCreateOrderSize, error) {
 	url := fmt.Sprintf("%s/api/v1/private/order/getMaxCreateOrderSize", c.Client.GetBaseURL())
-	queryParams := map[string]string{
+	queryParams := map[string]interface{}{
 		"accountId":  strconv.FormatInt(c.Client.GetAccountID(), 10),
 		"contractId": contractID,
-		"price":      fmt.Sprintf("%f", price),
+		"price":      price.String(),
 	}
 
-	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
+	resp, err := c.Client.HttpRequest(url, "POST", queryParams, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get max order size: %w", err)
 	}
@@ -446,7 +449,7 @@ func (c *Client) GetMaxOrderSize(ctx context.Context, contractID string, price f
 	}
 
 	if result.Code != "SUCCESS" {
-		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+		return nil, fmt.Errorf("request failed with code: %v", result)
 	}
 
 	return &result, nil

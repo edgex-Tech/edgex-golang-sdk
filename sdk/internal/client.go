@@ -28,9 +28,9 @@ type Client struct {
 
 // ClientConfig holds the configuration for creating a new Client
 type ClientConfig struct {
-	BaseURL          string
-	AccountID        int64
-	StarkPriKey      string
+	BaseURL     string
+	AccountID   int64
+	StarkPriKey string
 }
 
 // NewClient creates a new base client
@@ -173,6 +173,15 @@ func (c *Client) getValue(data interface{}) string {
 	case int, int32, int64, float32, float64:
 		return fmt.Sprintf("%v", v)
 	case []interface{}:
+		if len(v) == 0 {
+			return ""
+		}
+		var values []string
+		for _, item := range v {
+			values = append(values, c.getValue(item))
+		}
+		return strings.Join(values, "&")
+	case []string:
 		if len(v) == 0 {
 			return ""
 		}

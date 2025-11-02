@@ -195,8 +195,7 @@ func (c *Client) CreateNormalWithdraw(ctx context.Context, params *asset.CreateN
 
 // GetMaxOrderSize gets the maximum order size for a given contract and price
 func (c *Client) GetMaxOrderSize(ctx context.Context, contractID string, price decimal.Decimal) (*order.ResultGetMaxCreateOrderSize, error) {
-	priceFloat, _ := price.Float64()
-	return c.Order.GetMaxOrderSize(ctx, contractID, priceFloat)
+	return c.Order.GetMaxOrderSize(ctx, contractID, price)
 }
 
 // CancelOrder cancels a specific order

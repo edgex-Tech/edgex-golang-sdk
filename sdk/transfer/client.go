@@ -96,7 +96,7 @@ func (c *Client) GetTransferInById(ctx context.Context, params GetTransferInById
 
 // GetWithdrawAvailableAmount gets the available withdrawal amount
 func (c *Client) GetWithdrawAvailableAmount(ctx context.Context, params GetWithdrawAvailableAmountParams) (*ResultGetTransferOutAvailableAmount, error) {
-	url := fmt.Sprintf("%s/api/v1/private/transfer/getWithdrawAvailableAmount", c.Client.GetBaseURL())
+	url := fmt.Sprintf("%s/api/v1/private/transfer/getTransferOutAvailableAmount", c.Client.GetBaseURL())
 	queryParams := map[string]string{
 		"accountId": strconv.FormatInt(c.Client.GetAccountID(), 10),
 	}
