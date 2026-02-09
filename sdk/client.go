@@ -19,9 +19,22 @@ import (
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/quote"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/transfer"
+	"github.com/edgex-Tech/edgex-golang-sdk/sdk/user"
 	"github.com/shopspring/decimal"
 	"golang.org/x/crypto/sha3"
 )
+
+const (
+	APIVersionV1 = internal.APIVersionV1
+	APIVersionV2 = internal.APIVersionV2
+)
+
+const (
+	SigningMethodStark = internal.SigningMethodStark
+	SigningMethodHMAC  = internal.SigningMethodHMAC
+)
+
+const defaultMetaDataCacheTTL = time.Hour
 
 // Client represents an EdgeX SDK client
 type Client struct {
@@ -36,6 +49,7 @@ type Client struct {
 	Funding           *funding.Client
 	Transfer          *transfer.Client
 	Asset             *asset.Client
+	User              *user.Client
 }
 
 // ClientConfig holds the configuration for creating a new Client
@@ -43,23 +57,49 @@ type ClientConfig struct {
 	BaseURL          string
 	AccountID        int64
 	StarkPriKey      string
+	TradingPriKey    string
+	WalletPriKey     string
+	TradingAddr      string
+	WalletAddr       string
+	APIVersion       string
+	SigningMethod    string
+	APIKey           string
+	APIPassphrase    string
+	APISecret        string
+	AuthHeaderKey    string
 	MetaDataCacheTTL *time.Duration
 }
 
 // NewClient creates a new EdgeX SDK client
 func NewClient(cfg *ClientConfig) (*Client, error) {
 	internalClient, err := internal.NewClient(&internal.ClientConfig{
-		BaseURL:     cfg.BaseURL,
-		AccountID:   cfg.AccountID,
-		StarkPriKey: cfg.StarkPriKey,
+		BaseURL:       cfg.BaseURL,
+		AccountID:     cfg.AccountID,
+		StarkPriKey:   cfg.StarkPriKey,
+		TradingPriKey: cfg.TradingPriKey,
+		WalletPriKey:  cfg.WalletPriKey,
+		TradingAddr:   cfg.TradingAddr,
+		WalletAddr:    cfg.WalletAddr,
+		APIVersion:    cfg.APIVersion,
+		SigningMethod: cfg.SigningMethod,
+		APIKey:        cfg.APIKey,
+		APIPassphrase: cfg.APIPassphrase,
+		APISecret:     cfg.APISecret,
+		AuthHeaderKey: cfg.AuthHeaderKey,
 	})
 	if err != nil {
 		return nil, err
 	}
 
+	metadataCacheTTL := cfg.MetaDataCacheTTL
+	if metadataCacheTTL == nil {
+		defaultTTL := defaultMetaDataCacheTTL
+		metadataCacheTTL = &defaultTTL
+	}
+
 	return &Client{
 		Client:           internalClient,
-		metadataCacheTTL: cfg.MetaDataCacheTTL,
+		metadataCacheTTL: metadataCacheTTL,
 		Order:            order.NewClient(internalClient),
 		Metadata:         metadata.NewClient(internalClient),
 		Account:          account.NewClient(internalClient),
@@ -67,6 +107,7 @@ func NewClient(cfg *ClientConfig) (*Client, error) {
 		Funding:          funding.NewClient(internalClient),
 		Transfer:         transfer.NewClient(internalClient),
 		Asset:            asset.NewClient(internalClient),
+		User:             user.NewClient(internalClient),
 	}, nil
 }
 
@@ -258,6 +299,21 @@ func (c *Client) GetAccountDeleverageLight(ctx context.Context) (*account.GetAcc
 	return c.Account.GetAccountDeleverageLight(ctx)
 }
 
+// GetAccountPage gets paginated account list (v2 endpoint).
+func (c *Client) GetAccountPage(ctx context.Context, params account.GetAccountPageParams) (*account.PageDataAccountResponse, error) {
+	return c.Account.GetAccountPage(ctx, params)
+}
+
+// UpdateAccountName updates account name for current account id (v2 endpoint).
+func (c *Client) UpdateAccountName(ctx context.Context, accountName string) error {
+	return c.Account.UpdateAccountName(ctx, accountName)
+}
+
+// RegisterAccountV2 registers an account using v2 registration payload.
+func (c *Client) RegisterAccountV2(ctx context.Context, params *account.RegisterAccountV2Params) (*account.RegisterAccountV2Response, error) {
+	return c.Account.RegisterAccountV2(ctx, params)
+}
+
 // GetAccountAssetSnapshotPage gets account asset snapshots with pagination
 func (c *Client) GetAccountAssetSnapshotPage(ctx context.Context, params account.GetAccountAssetSnapshotPageParams) (*account.PageDataAccountAssetSnapshotResponse, error) {
 	return c.Account.GetAccountAssetSnapshotPage(ctx, params)
@@ -271,6 +327,21 @@ func (c *Client) GetPositionTransactionByID(ctx context.Context, transactionIDs 
 // GetCollateralTransactionByID gets collateral transactions by IDs
 func (c *Client) GetCollateralTransactionByID(ctx context.Context, transactionIDs []string) (*account.ListCollateralTransactionResponse, error) {
 	return c.Account.GetCollateralTransactionByID(ctx, transactionIDs)
+}
+
+// CheckUserExist checks whether user exists.
+func (c *Client) CheckUserExist(ctx context.Context, ethAddress string) (*user.CheckUserExistResponse, error) {
+	return c.User.CheckUserExist(ctx, ethAddress)
+}
+
+// GetAccountIdForRegister gets hint account id for v2 registration.
+func (c *Client) GetAccountIdForRegister(ctx context.Context, ethAddress string, clientAccountId string) (*user.GetAccountIdForRegisterResponse, error) {
+	return c.User.GetAccountIdForRegister(ctx, ethAddress, clientAccountId)
+}
+
+// OnboardSiteV2 performs v2 onboarding/login.
+func (c *Client) OnboardSiteV2(ctx context.Context, params *user.OnboardSiteV2Params) (*user.OnboardSiteResponse, error) {
+	return c.User.OnboardSiteV2(ctx, params)
 }
 
 // GetQuoteSummary gets the quote summary for a given contract

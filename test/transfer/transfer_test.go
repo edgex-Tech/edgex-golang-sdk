@@ -2,6 +2,8 @@ package transfer
 
 import (
 	"encoding/json"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/transfer"
@@ -62,9 +64,11 @@ func TestGetWithdrawAvailableAmount(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
+	coinID, err := test.ResolveTestCoinID(ctx, client)
+	assert.NoError(t, err)
 
 	params := transfer.GetWithdrawAvailableAmountParams{
-		CoinId: "1000",
+		CoinId: coinID,
 	}
 	resp, err := client.GetWithdrawAvailableAmount(ctx, params)
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
@@ -84,13 +88,21 @@ func TestCreateTransferOut(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
+	coinID, err := test.ResolveTestCoinID(ctx, client)
+	assert.NoError(t, err)
+
+	receiverAccountID := strings.TrimSpace(os.Getenv("TEST_TRANSFER_RECEIVER_ACCOUNT_ID"))
+	receiverL2Key := strings.TrimSpace(os.Getenv("TEST_TRANSFER_RECEIVER_L2_KEY"))
+	if receiverAccountID == "" || receiverL2Key == "" {
+		t.Skip("Skipping transfer-out create test: TEST_TRANSFER_RECEIVER_ACCOUNT_ID and TEST_TRANSFER_RECEIVER_L2_KEY are required")
+	}
 
 	// Test parameters
 	params := &transfer.CreateTransferOutParams{
-		CoinId:            "1000", // Asset ID
-		Amount:            "1",    // 1 unit
-		ReceiverAccountId: "542103805685137746",
-		ReceiverL2Key:     "0x046bcf2e07c20550c49986aca69f405ae4672507fae2568640d3f1d2dcf1bfeb",
+		CoinId:            coinID,
+		Amount:            "1",
+		ReceiverAccountId: receiverAccountID,
+		ReceiverL2Key:     receiverL2Key,
 		TransferReason:    "USER_TRANSFER",
 	}
 

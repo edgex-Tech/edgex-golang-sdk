@@ -25,7 +25,8 @@ func TestGetAccountAsset(t *testing.T) {
 	data := asset.Data
 	assert.NotNil(t, data)
 	assert.NotEmpty(t, data.CollateralList)
-	assert.NotEmpty(t, data.PositionList)
+	// Position list can legitimately be empty for a fresh account.
+	assert.NotNil(t, data.PositionList)
 }
 
 func TestGetAccountPositions(t *testing.T) {
@@ -168,10 +169,12 @@ func TestGetAccountAssetSnapshotPage(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
+	coinID, err := test.ResolveTestCoinID(ctx, client)
+	assert.NoError(t, err)
 
 	params := account.GetAccountAssetSnapshotPageParams{
 		Size:   10,
-		CoinID: "1000", // Example coin ID
+		CoinID: coinID,
 	}
 
 	snapshots, err := client.GetAccountAssetSnapshotPage(ctx, params)
@@ -243,8 +246,10 @@ func TestUpdateLeverageSetting(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
+	contractID, err := test.ResolveTestContractID(ctx, client)
+	assert.NoError(t, err)
 
 	// Test updating leverage setting within allowed range on an active contract
-	err = client.UpdateLeverageSetting(ctx, "20000018", "5")
+	err = client.UpdateLeverageSetting(ctx, contractID, "5")
 	assert.NoError(t, err)
 }

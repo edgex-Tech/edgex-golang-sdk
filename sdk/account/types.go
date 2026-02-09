@@ -189,10 +189,13 @@ type AccountResponse struct {
 
 // Account represents account information
 type Account struct {
-	ID         string `json:"id"`
-	UserID     string `json:"userId"`
-	EthAddress string `json:"ethAddress"`
-	L2Key      string `json:"l2Key"`
+	ID              string `json:"id"`
+	UserID          string `json:"userId"`
+	EthAddress      string `json:"ethAddress"`
+	ExternalAddress string `json:"externalAddress,omitempty"`
+	AccountName     string `json:"accountName,omitempty"`
+	ClientAccountID string `json:"clientAccountId,omitempty"`
+	L2Key           string `json:"l2Key"`
 }
 
 // GetAccountAssetSnapshotPageParams represents the parameters for GetAccountAssetSnapshotPage
@@ -243,6 +246,71 @@ type UpdateLeverageSettingResponse struct {
 	Data       map[string]interface{} `json:"data"`
 	ErrorParam interface{}            `json:"errorParam"`
 	ErrorMsg   string                 `json:"msg"`
+}
+
+// GetAccountPageParams represents params for v2 account page retrieval.
+type GetAccountPageParams struct {
+	Size       int32
+	OffsetData string
+}
+
+// PageDataAccount represents paginated account list.
+type PageDataAccount struct {
+	DataList           []Account `json:"dataList,omitempty"`
+	NextPageOffsetData *string   `json:"nextPageOffsetData,omitempty"`
+}
+
+// PageDataAccountResponse represents paginated account list response.
+type PageDataAccountResponse struct {
+	Code       string           `json:"code"`
+	Data       *PageDataAccount `json:"data"`
+	ErrorParam interface{}      `json:"errorParam"`
+	ErrorMsg   string           `json:"msg"`
+}
+
+// UpdateAccountNameResponse represents response for account name update.
+type UpdateAccountNameResponse struct {
+	Code       string                 `json:"code"`
+	Data       map[string]interface{} `json:"data"`
+	ErrorParam interface{}            `json:"errorParam"`
+	ErrorMsg   string                 `json:"msg"`
+}
+
+// SignerWithPermissions defines signer and permission mapping for v2 registration.
+type SignerWithPermissions struct {
+	Signer      string `json:"signer"`
+	Permissions string `json:"permissions"`
+}
+
+// RegisterAccountV2Params represents payload for /v2/private/account/registerAccount.
+type RegisterAccountV2Params struct {
+	AccountName           string                  `json:"accountName"`
+	IsSystemAccount       bool                    `json:"isSystemAccount"`
+	ExtraSigners          []string                `json:"extraSigners,omitempty"`
+	SignerWithPermissions []SignerWithPermissions `json:"signerWithPermissions,omitempty"`
+	EthSignature          string                  `json:"ethSignature"`
+	HintAccountId         string                  `json:"hintAccountId"`
+	// Owner is the EOA/embedded wallet address used as typed-data "owner" when EthSignature is empty.
+	Owner string `json:"-"`
+	// ChainID is optional override for EIP-712 domain chainId when EthSignature is empty.
+	ChainID string `json:"-"`
+	// VerifyingContract is optional override for EIP-712 domain verifyingContract when EthSignature is empty.
+	VerifyingContract string `json:"-"`
+}
+
+// RegisterAccountV2Result represents v2 register account result.
+type RegisterAccountV2Result struct {
+	AccountID    string `json:"accountId"`
+	CreatedTime  string `json:"createdTime"`
+	IsNewAccount bool   `json:"isNewAccount"`
+}
+
+// RegisterAccountV2Response represents response for v2 register account.
+type RegisterAccountV2Response struct {
+	Code       string                   `json:"code"`
+	Data       *RegisterAccountV2Result `json:"data"`
+	ErrorParam interface{}              `json:"errorParam"`
+	ErrorMsg   string                   `json:"msg"`
 }
 
 // Request parameter types

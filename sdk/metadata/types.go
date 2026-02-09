@@ -48,14 +48,25 @@ type Global struct {
 	FastWithdrawAccountL2Key     string `json:"fastWithdrawAccountL2Key"`
 	FastWithdrawMaxAmount        string `json:"fastWithdrawMaxAmount"`
 	FastWithdrawRegistryAddress  string `json:"fastWithdrawRegistryAddress"`
+	ChainId                      string `json:"chainId"`
+	ContractAddress              string `json:"contractAddress"`
 	StarkExChainId               string `json:"starkExChainId"`
 	StarkExContractAddress       string `json:"starkExContractAddress"`
+	CollateralCoin               *Coin  `json:"collateralCoin"`
 	StarkExCollateralCoin        *Coin  `json:"starkExCollateralCoin"`
 	StarkExMaxFundingRate        int32  `json:"starkExMaxFundingRate"`
 	StarkExOrdersTreeHeight      int32  `json:"starkExOrdersTreeHeight"`
 	StarkExPositionsTreeHeight   int32  `json:"starkExPositionsTreeHeight"`
 	StarkExFundingValidityPeriod int32  `json:"starkExFundingValidityPeriod"`
 	StarkExPriceValidityPeriod   int32  `json:"starkExPriceValidityPeriod"`
+	NativeChainId                string `json:"nativeChainId"`
+	TransferCoinId               string `json:"transferCoinId"`
+	TransferTokenAddress         string `json:"transferTokenAddress"`
+	TransferTokenDecimals        int32  `json:"transferTokenDecimals"`
+	TransferLimitEnable          bool   `json:"transferLimitEnable"`
+	MinTransferSize              string `json:"minTransferSize"`
+	PerpVaultAddress             string `json:"perpVaultAddress"`
+	SpotVaultAddress             string `json:"spotVaultAddress"`
 	MaintenanceReason            string `json:"maintenanceReason"`
 }
 
@@ -66,6 +77,8 @@ type Coin struct {
 	StepSize          string `json:"stepSize"`
 	ShowStepSize      string `json:"showStepSize"`
 	IconUrl           string `json:"iconUrl"`
+	AssetId           string `json:"assetId"`
+	Resolution        string `json:"resolution"`
 	StarkExAssetId    string `json:"starkExAssetId"`
 	StarkExResolution string `json:"starkExResolution"`
 }
@@ -107,7 +120,10 @@ type Contract struct {
 	IsOpenAutoReduceExposureRate bool   `json:"isOpenAutoReduceExposureRate"`
 	StarkExResolution            string `json:"starkExResolution"`
 	StarkExSyntheticAssetId      string `json:"starkExSyntheticAssetId"`
+	SyntheticAssetId             string `json:"syntheticAssetId"`
+	Resolution                   string `json:"resolution"`
 	DefaultTakerFeeRate          string `json:"defaultTakerFeeRate"`
+	DefaultMakerFeeRate          string `json:"defaultMakerFeeRate"`
 }
 
 // MultiChain represents multi-chain withdrawal information

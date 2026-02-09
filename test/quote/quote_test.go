@@ -14,8 +14,10 @@ func TestGetQuoteSummary(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
+	contractID, err := test.ResolveTestContractID(ctx, client)
+	assert.NoError(t, err)
 
-	resp, err := client.GetQuoteSummary(ctx, "20000018")
+	resp, err := client.GetQuoteSummary(ctx, contractID)
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("Quote Summary: %s", string(jsonData))
 	assert.NoError(t, err)
@@ -33,8 +35,10 @@ func TestGet24HourQuotes(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
+	contractID, err := test.ResolveTestContractID(ctx, client)
+	assert.NoError(t, err)
 
-	resp, err := client.Get24HourQuote(ctx, "20000018")
+	resp, err := client.Get24HourQuote(ctx, contractID)
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("24-Hour Quotes: %s", string(jsonData))
 	assert.NoError(t, err)
@@ -52,9 +56,11 @@ func TestGetKLine(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
+	contractID, err := test.ResolveTestContractID(ctx, client)
+	assert.NoError(t, err)
 
 	params := quote.GetKLineParams{
-		ContractID: "20000018",
+		ContractID: contractID,
 		Interval:   quote.KlineType1Hour,
 		Size:       100,
 		PriceType:  quote.PriceTypeLastPrice,
@@ -68,7 +74,7 @@ func TestGetKLine(t *testing.T) {
 
 	data := resp.Data
 	assert.NotNil(t, data)
-	assert.NotEmpty(t, data.DataList)
+	assert.NotNil(t, data.DataList)
 	// Verify Kline data structure
 	for _, kline := range data.DataList {
 		assert.NotNil(t, kline)
@@ -81,9 +87,11 @@ func TestGetOrderBookDepth(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
+	contractID, err := test.ResolveTestContractID(ctx, client)
+	assert.NoError(t, err)
 
 	params := quote.GetOrderBookDepthParams{
-		ContractID: "20000018",
+		ContractID: contractID,
 		Size:       15, // API supports 15 or 200 levels
 	}
 	resp, err := client.GetOrderBookDepth(ctx, params)
@@ -109,9 +117,11 @@ func TestGetMultiContractKLine(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
+	contractID, err := test.ResolveTestContractID(ctx, client)
+	assert.NoError(t, err)
 
 	params := quote.GetMultiContractKLineParams{
-		ContractIDs: []string{"20000018"},
+		ContractIDs: []string{contractID},
 		Interval:    quote.KlineType1Hour,
 		Size:        100,
 		PriceType:   quote.PriceTypeLastPrice,

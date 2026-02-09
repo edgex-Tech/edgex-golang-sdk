@@ -23,11 +23,11 @@ import (
 
 func main() {
     // Create a new client
-    client, err := sdk.NewClient(
-        sdk.WithBaseURL("https://testnet.edgex.exchange"),
-        sdk.WithAccountID(12345),
-        sdk.WithStarkPrivateKey("your-stark-private-key"),
-    )
+    client, err := sdk.NewClient(&sdk.ClientConfig{
+        BaseURL:     "https://testnet.edgex.exchange",
+        AccountID:   12345,
+        StarkPriKey: "your-stark-private-key",
+    })
     if err != nil {
         log.Fatal(err)
     }
@@ -44,6 +44,62 @@ func main() {
     // Print asset information
     fmt.Printf("Account Assets: %+v\n", assets)
 }
+```
+
+## V2 Migration Support
+
+The SDK now supports V2 API routing and HMAC request signing (aligned with `edgex-web`).
+
+Use these `sdk.ClientConfig` fields:
+
+- `APIVersion`: `sdk.APIVersionV1` (default) or `sdk.APIVersionV2`
+- `SigningMethod`: `sdk.SigningMethodStark` (default for v1) or `sdk.SigningMethodHMAC` (default for v2)
+- `APIKey`, `APIPassphrase`, `APISecret`: required for private requests in HMAC mode
+- `AuthHeaderKey`: app header prefix, default `edgeX` (e.g. `X-edgeX-Api-Key`)
+- `TradingPriKey` / `TradingAddr`: EIP-712 trading signer key/address (used for V2 order signatures)
+- `WalletPriKey` / `WalletAddr`: EIP-712 wallet signer key/address (used for V2 transfer signatures)
+
+Example:
+
+```go
+client, err := sdk.NewClient(&sdk.ClientConfig{
+    BaseURL:       "https://edgex-testnet-internal-v2.edgex.exchange",
+    APIVersion:    sdk.APIVersionV2,
+    SigningMethod: sdk.SigningMethodHMAC,
+    APIKey:        "your-api-key",
+    APIPassphrase: "your-passphrase",
+    APISecret:     "your-secret",
+    AccountID:     12345,
+    TradingPriKey: "0x...trading-secp256k1-private-key...",
+    WalletPriKey:  "0x...wallet-secp256k1-private-key...",
+})
+```
+
+New V2 onboarding/register helpers:
+
+- `client.CheckUserExist(...)`
+- `client.GetAccountIdForRegister(...)`
+- `client.OnboardSiteV2(...)`
+- `client.RegisterAccountV2(...)`
+
+EIP-712 flows ported in SDK:
+
+- V2 order create: `client.CreateOrder(...)` when `APIVersion = sdk.APIVersionV2`
+- V2 transfer create: `client.CreateTransferOut(...)` when `APIVersion = sdk.APIVersionV2`
+- V2 register account: `client.RegisterAccountV2(...)` can auto-sign when `EthSignature` is empty and `WalletPriKey` is configured (optional overrides: `Owner`, `ChainID`, `VerifyingContract`)
+
+V2 private WebSocket auth (perp) is supported via `ws.NewManagerWithConfig(...)`:
+
+```go
+manager := ws.NewManagerWithConfig("wss://edgex-quote-testnet-v2.edgex.exchange", accountID, &ws.ManagerConfig{
+    APIVersion:    sdk.APIVersionV2,
+    SigningMethod: sdk.SigningMethodHMAC,
+    APIKey:        "your-api-key",
+    APIPassphrase: "your-passphrase",
+    APISecret:     "your-secret",
+    // optional, default: "edgeX"
+    AuthHeaderKey: "EDGEX",
+})
 ```
 
 ## Available APIs
@@ -98,7 +154,16 @@ For testing, the following environment variables need to be set:
 - `TEST_BASE_URL`: Base URL for HTTP API endpoints (e.g., "https://api-testnet.edgex.exchange")
 - `TEST_WS_BASE_URL`: Base URL for WebSocket endpoints (e.g., "wss://quote-testnet.edgex.exchange")
 - `TEST_ACCOUNT_ID`: Your account ID
-- `TEST_STARK_PRIVATE_KEY`: Your stark private key
+- `TEST_API_VERSION`: `v1` or `v2` (optional; auto-detected from URL/credentials)
+- `TEST_SIGNING_METHOD`: `stark` or `hmac` (optional; auto-detected from API version/credentials)
+- `TEST_STARK_PRIVATE_KEY`: Stark private key (required for v1 Stark signing flows)
+- `TEST_TRADING_PRIVATE_KEY`: required for v2 EIP-712 order signing tests
+- `TEST_WALLET_PRIVATE_KEY`: required for v2 EIP-712 transfer signing tests
+- `TEST_WS_SIGNING_METHOD`: `stark` or `hmac` (optional; auto-detected from credentials)
+- `TEST_API_KEY`, `TEST_API_PASSPHRASE`, `TEST_API_SECRET`: required for v2 HMAC private WS tests
+- `TEST_AUTH_HEADER_KEY`: optional HMAC header prefix override (defaults to `edgeX`)
+- `TEST_TRANSFER_RECEIVER_ACCOUNT_ID`, `TEST_TRANSFER_RECEIVER_L2_KEY`: optional; required only for `TestCreateTransferOut`
+- `TEST_ENABLE_MUTATION_TESTS`: set to `true` to enable withdraw/create mutation tests
 
 ## Contributing
 

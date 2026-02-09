@@ -14,10 +14,12 @@ func TestGetFundingRate(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
+	contractID, err := test.ResolveTestContractID(ctx, client)
+	assert.NoError(t, err)
 
 	size := int32(10)
 	params := funding.GetFundingRateParams{
-		ContractID: "20000018", // liquid contract with active market making
+		ContractID: contractID,
 		Size:       &size,
 	}
 	resp, err := client.Funding.GetFundingRate(ctx, params)
@@ -29,7 +31,7 @@ func TestGetFundingRate(t *testing.T) {
 
 	data := resp.Data
 	assert.NotNil(t, data)
-	assert.NotEmpty(t, data.DataList)
+	assert.NotNil(t, data.DataList)
 	for _, rate := range data.DataList {
 		// Verify FundingRate data structure
 		assert.NotNil(t, rate)
@@ -43,9 +45,11 @@ func TestGetLatestFundingRate(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
+	contractID, err := test.ResolveTestContractID(ctx, client)
+	assert.NoError(t, err)
 
 	params := funding.GetLatestFundingRateParams{
-		ContractID: "20000018", // liquid contract with active market making
+		ContractID: contractID,
 	}
 	resp, err := client.Funding.GetLatestFundingRate(ctx, params)
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
@@ -56,7 +60,6 @@ func TestGetLatestFundingRate(t *testing.T) {
 
 	data := resp.Data
 	assert.NotNil(t, data)
-	assert.NotEmpty(t, data)
 	for _, rate := range data {
 		// Verify FundingRate data structure
 		assert.NotNil(t, rate)

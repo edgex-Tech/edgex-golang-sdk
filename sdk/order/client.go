@@ -38,19 +38,29 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 		}
 	}
 
-	// Find contract from metadata
+	contract, quoteCoin, err := resolveOrderContractAndQuoteCoin(metadata, params.ContractId)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.Client.GetAPIVersion() == internal.APIVersionV2 {
+		return c.createOrderV2(ctx, params, metadata, contract, quoteCoin, l2Price)
+	}
+	return c.createOrderV1(ctx, params, contract, quoteCoin, l2Price)
+}
+
+func resolveOrderContractAndQuoteCoin(metadata *metadatapkg.MetaData, contractID string) (*metadatapkg.Contract, *metadatapkg.Coin, error) {
 	var contract *metadatapkg.Contract
 	if metadata != nil && metadata.ContractList != nil {
 		for i := range metadata.ContractList {
-			if metadata.ContractList[i].ContractId == params.ContractId {
+			if metadata.ContractList[i].ContractId == contractID {
 				contract = &metadata.ContractList[i]
 				break
 			}
 		}
 	}
-
 	if contract == nil {
-		return nil, fmt.Errorf("contract not found: %s", params.ContractId)
+		return nil, nil, fmt.Errorf("contract not found: %s", contractID)
 	}
 
 	var quoteCoin *metadatapkg.Coin
@@ -62,11 +72,80 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 			}
 		}
 	}
-
 	if quoteCoin == nil {
-		return nil, fmt.Errorf("coin not found: %s", contract.QuoteCoinId)
+		return nil, nil, fmt.Errorf("coin not found: %s", contract.QuoteCoinId)
 	}
 
+	return contract, quoteCoin, nil
+}
+
+func parseResolutionDecimal(resolution string, starkExResolution string) (decimal.Decimal, error) {
+	candidates := []string{
+		strings.TrimSpace(resolution),
+		strings.TrimSpace(starkExResolution),
+	}
+
+	var parseErrors []string
+	for _, candidate := range candidates {
+		if candidate == "" {
+			continue
+		}
+
+		lower := strings.ToLower(candidate)
+		if strings.HasPrefix(lower, "0x") {
+			resolutionBig, err := internal.HexToBigInteger(candidate)
+			if err != nil {
+				parseErrors = append(parseErrors, fmt.Sprintf("hex(%s): %v", candidate, err))
+				continue
+			}
+			return decimal.NewFromBigInt(resolutionBig, 0), nil
+		}
+
+		res, err := decimal.NewFromString(candidate)
+		if err != nil {
+			parseErrors = append(parseErrors, fmt.Sprintf("decimal(%s): %v", candidate, err))
+			continue
+		}
+		return res, nil
+	}
+
+	if len(parseErrors) == 0 {
+		return decimal.Zero, fmt.Errorf("resolution is empty")
+	}
+	return decimal.Zero, fmt.Errorf("failed to parse resolution: %s", strings.Join(parseErrors, "; "))
+}
+
+func parseMaxFeeRate(contract *metadatapkg.Contract) (decimal.Decimal, error) {
+	if contract == nil {
+		return decimal.Zero, fmt.Errorf("contract is nil")
+	}
+
+	defaultRate, _ := decimal.NewFromString("0.001")
+	takerRate := defaultRate
+	if strings.TrimSpace(contract.DefaultTakerFeeRate) != "" {
+		parsed, err := decimal.NewFromString(contract.DefaultTakerFeeRate)
+		if err != nil {
+			return decimal.Zero, fmt.Errorf("failed to parse default taker fee rate: %w", err)
+		}
+		takerRate = parsed
+	}
+
+	makerRate := takerRate
+	if strings.TrimSpace(contract.DefaultMakerFeeRate) != "" {
+		parsed, err := decimal.NewFromString(contract.DefaultMakerFeeRate)
+		if err != nil {
+			return decimal.Zero, fmt.Errorf("failed to parse default maker fee rate: %w", err)
+		}
+		makerRate = parsed
+	}
+
+	if makerRate.GreaterThan(takerRate) {
+		return makerRate, nil
+	}
+	return takerRate, nil
+}
+
+func (c *Client) createOrderV1(ctx context.Context, params *CreateOrderParams, contract *metadatapkg.Contract, quoteCoin *metadatapkg.Coin, l2Price decimal.Decimal) (*ResultCreateOrder, error) {
 	syntheticFactorBig, err := internal.HexToBigInteger(contract.StarkExResolution)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse synthetic factor: %w", err)
@@ -78,45 +157,43 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 		return nil, fmt.Errorf("failed to parse shift factor: %w", err)
 	}
 	shiftFactor := decimal.NewFromBigInt(shiftFactorBig, 0)
-	// Parse decimal values
+
 	size, err := decimal.NewFromString(params.Size)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse size: %w", err)
 	}
 
-	// Calculate values
 	valueDm := l2Price.Mul(size)
-
 	amountSynthetic := size.Mul(syntheticFactor).IntPart()
 	amountCollateral := valueDm.Mul(shiftFactor).IntPart()
 
-	// Get fee rate from contract or use default
-	var feeRate decimal.Decimal
-	if contract.DefaultTakerFeeRate != "" {
-		feeRateVal, err := decimal.NewFromString(contract.DefaultTakerFeeRate)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse fee rate: %w", err)
-		}
-		feeRate = feeRateVal
-	} else {
-		feeRate, _ = decimal.NewFromString("0.001") // Default fee rate
+	feeRate, err := parseMaxFeeRate(contract)
+	if err != nil {
+		return nil, err
 	}
 
-	// Calculate fee amount in decimal with ceiling to integer
-	limitFee := size.Mul(l2Price).Mul(feeRate).Ceil()
+	limitFee := valueDm.Mul(feeRate).Ceil()
 	maxAmountFee := limitFee.Mul(shiftFactor)
 
-	clientOrderId := internal.GetRandomClientId()
+	clientOrderID := internal.GetRandomClientId()
+	if params.ClientOrderId != nil && strings.TrimSpace(*params.ClientOrderId) != "" {
+		clientOrderID = *params.ClientOrderId
+	}
 
-	nonce := internal.CalcNonce(clientOrderId)
-	l2ExpireTime := params.ExpireTime.Add(time.Hour * 9 * 24).UnixMilli()
+	expireTime := params.ExpireTime
+	if expireTime.IsZero() {
+		expireTime = time.Now().Add(24 * time.Hour)
+	}
+
+	nonce := internal.CalcNonce(clientOrderID)
+	l2ExpireTime := expireTime.Add(time.Hour * 9 * 24).UnixMilli()
 	l2ExpireHour := l2ExpireTime / (60 * 60 * 1000)
 
 	msgHash := internal.CalcLimitOrderHash(
 		contract.StarkExSyntheticAssetId,
 		quoteCoin.StarkExAssetId,
 		quoteCoin.StarkExAssetId,
-		params.Side == "BUY",
+		params.Side == OrderSideBuy,
 		amountSynthetic,
 		amountCollateral,
 		maxAmountFee.BigInt().Int64(),
@@ -126,11 +203,10 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 	)
 	signature, err := c.Client.Sign(msgHash)
 	if err != nil {
-		return nil, fmt.Errorf("failed to sign withdrawal hash: %w", err)
+		return nil, fmt.Errorf("failed to sign order hash: %w", err)
 	}
-	sig_str := fmt.Sprintf("%s%s%s", signature.R, signature.S, signature.V)
+	sigStr := fmt.Sprintf("%s%s%s", signature.R, signature.S, signature.V)
 
-	// Build request body
 	body := map[string]interface{}{
 		"accountId":     strconv.FormatInt(c.Client.GetAccountID(), 10),
 		"contractId":    params.ContractId,
@@ -139,10 +215,10 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 		"type":          string(params.Type),
 		"side":          params.Side,
 		"timeInForce":   params.TimeInForce,
-		"clientOrderId": clientOrderId,
-		"expireTime":    strconv.FormatInt(params.ExpireTime.UnixMilli(), 10),
+		"clientOrderId": clientOrderID,
+		"expireTime":    strconv.FormatInt(expireTime.UnixMilli(), 10),
 		"l2Nonce":       strconv.FormatInt(nonce, 10),
-		"l2Signature":   sig_str,
+		"l2Signature":   sigStr,
 		"l2ExpireTime":  strconv.FormatInt(l2ExpireTime, 10),
 		"l2Value":       valueDm.String(),
 		"l2Size":        params.Size,
@@ -150,6 +226,172 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 		"reduceOnly":    params.ReduceOnly,
 	}
 
+	return c.postCreateOrder(ctx, body)
+}
+
+func (c *Client) createOrderV2(ctx context.Context, params *CreateOrderParams, metadata *metadatapkg.MetaData, contract *metadatapkg.Contract, quoteCoin *metadatapkg.Coin, l2Price decimal.Decimal) (*ResultCreateOrder, error) {
+	if contract == nil || quoteCoin == nil {
+		return nil, fmt.Errorf("contract/quote coin is nil")
+	}
+
+	if c.Client.GetTradingPriKey() == "" {
+		return nil, fmt.Errorf("trading private key is required for v2 EIP-712 order signing")
+	}
+
+	size, err := decimal.NewFromString(params.Size)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse size: %w", err)
+	}
+	l2Value := l2Price.Mul(size)
+
+	feeRate, err := parseMaxFeeRate(contract)
+	if err != nil {
+		return nil, err
+	}
+	limitFee := l2Value.Mul(feeRate).Ceil()
+
+	contractResolution, err := parseResolutionDecimal(contract.Resolution, contract.StarkExResolution)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse contract resolution: %w", err)
+	}
+	quoteResolution, err := parseResolutionDecimal(quoteCoin.Resolution, quoteCoin.StarkExResolution)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse quote coin resolution: %w", err)
+	}
+
+	amountSynthetic := size.Mul(contractResolution).BigInt()
+	amountCollateral := l2Value.Mul(quoteResolution).BigInt()
+	amountFee := limitFee.Mul(quoteResolution).BigInt()
+
+	clientOrderID := internal.GetRandomClientId()
+	if params.ClientOrderId != nil && strings.TrimSpace(*params.ClientOrderId) != "" {
+		clientOrderID = *params.ClientOrderId
+	}
+	l2Nonce := internal.CalcNonce(clientOrderID)
+
+	nowMillis := time.Now().UnixMilli()
+	const orderExpireWindowMillis int64 = 30 * 24 * 60 * 60 * 1000
+	const l1OffsetMillis int64 = 8 * 24 * 60 * 60 * 1000
+
+	l2ExpireTime := nowMillis + orderExpireWindowMillis
+	expireTime := l2ExpireTime - l1OffsetMillis
+	if !params.ExpireTime.IsZero() {
+		expireTime = params.ExpireTime.UnixMilli()
+		l2ExpireTime = expireTime + l1OffsetMillis
+	}
+
+	tradingSigner, err := c.Client.ResolveTradingSignerAddress()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve trading signer address: %w", err)
+	}
+
+	chainID := ""
+	verifyingContract := ""
+	if metadata != nil && metadata.Global != nil {
+		chainID = strings.TrimSpace(metadata.Global.NativeChainId)
+		if chainID == "" {
+			chainID = strings.TrimSpace(metadata.Global.ChainId)
+		}
+		verifyingContract = strings.TrimSpace(metadata.Global.ContractAddress)
+	}
+
+	if chainID == "" {
+		return nil, fmt.Errorf("metadata.global.nativeChainId/chainId is required for v2 order signing")
+	}
+	if verifyingContract == "" {
+		return nil, fmt.Errorf("metadata.global.contractAddress is required for v2 order signing")
+	}
+
+	typedDomain, err := internal.NewTypedDataDomain("EdgeX", "1", chainID, verifyingContract)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build typed data domain: %w", err)
+	}
+
+	typedData := internal.TypedData{
+		Types: internal.TypedDataTypes{
+			"EIP712Domain": []internal.TypedDataType{
+				{Name: "name", Type: "string"},
+				{Name: "version", Type: "string"},
+				{Name: "chainId", Type: "uint256"},
+				{Name: "verifyingContract", Type: "address"},
+			},
+			"OrderBase": []internal.TypedDataType{
+				{Name: "nonce", Type: "uint256"},
+				{Name: "signer", Type: "address"},
+				{Name: "accountId", Type: "uint64"},
+				{Name: "expirationTimestamp", Type: "uint256"},
+			},
+			"LimitOrderParams": []internal.TypedDataType{
+				{Name: "base", Type: "OrderBase"},
+				{Name: "amountSynthetic", Type: "int256"},
+				{Name: "amountCollateral", Type: "int256"},
+				{Name: "amountFee", Type: "uint256"},
+				{Name: "assetIdSynthetic", Type: "uint64"},
+				{Name: "assetIdCollateral", Type: "uint64"},
+				{Name: "isBuyingSynthetic", Type: "bool"},
+				{Name: "parentOrderHash", Type: "bytes32"},
+				{Name: "subOrderIndex", Type: "uint256"},
+			},
+		},
+		PrimaryType: "LimitOrderParams",
+		Domain:      typedDomain,
+		Message: internal.TypedDataMessage{
+			"base": map[string]interface{}{
+				"nonce":               strconv.FormatInt(l2Nonce, 10),
+				"signer":              tradingSigner,
+				"accountId":           strconv.FormatInt(c.Client.GetAccountID(), 10),
+				"expirationTimestamp": strconv.FormatInt(expireTime/1000, 10),
+			},
+			"amountSynthetic":  amountSynthetic.String(),
+			"amountCollateral": amountCollateral.String(),
+			"amountFee":        amountFee.String(),
+			"assetIdSynthetic": contract.ContractId,
+			"assetIdCollateral": func() string {
+				if quoteCoin.CoinId != "" {
+					return quoteCoin.CoinId
+				}
+				return contract.QuoteCoinId
+			}(),
+			"isBuyingSynthetic": params.Side == OrderSideBuy,
+			"parentOrderHash":   "0x0000000000000000000000000000000000000000000000000000000000000000",
+			"subOrderIndex":     "0",
+		},
+	}
+
+	l2Signature, err := c.Client.SignTypedDataWithTradingKey(typedData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign v2 order typed data: %w", err)
+	}
+
+	price := params.Price
+	if params.Type == OrderTypeMarket || params.Type == OrderTypeStopMarket || params.Type == OrderTypeTakeProfitMarket {
+		price = "0"
+	}
+
+	body := map[string]interface{}{
+		"accountId":     strconv.FormatInt(c.Client.GetAccountID(), 10),
+		"contractId":    params.ContractId,
+		"price":         price,
+		"size":          params.Size,
+		"type":          string(params.Type),
+		"side":          params.Side,
+		"timeInForce":   params.TimeInForce,
+		"clientOrderId": clientOrderID,
+		"expireTime":    strconv.FormatInt(expireTime, 10),
+		"l2Nonce":       strconv.FormatInt(l2Nonce, 10),
+		"l2Signature":   l2Signature,
+		"l2ExpireTime":  strconv.FormatInt(l2ExpireTime, 10),
+		"l2Value":       l2Value.String(),
+		"l2Size":        params.Size,
+		"l2LimitFee":    limitFee.String(),
+		"reduceOnly":    params.ReduceOnly,
+	}
+
+	return c.postCreateOrder(ctx, body)
+}
+
+func (c *Client) postCreateOrder(ctx context.Context, body map[string]interface{}) (*ResultCreateOrder, error) {
+	_ = ctx
 	url := fmt.Sprintf("%s/api/v1/private/order/createOrder", c.Client.GetBaseURL())
 	resp, err := c.Client.HttpRequest(url, "POST", body, nil)
 	if err != nil {
@@ -194,7 +436,7 @@ func (c *Client) CancelOrder(ctx context.Context, params *CancelOrderParams) (in
 			"clientOrderIdList": []string{params.ClientId},
 		}
 	} else if params.ContractId != "" {
-		url = "/api/v1/private/order/cancelAllOrder"
+		url = fmt.Sprintf("%s/api/v1/private/order/cancelAllOrder", c.Client.GetBaseURL())
 		body = map[string]interface{}{
 			"accountId":            accountID,
 			"filterContractIdList": []string{params.ContractId},

@@ -101,7 +101,6 @@ func (c *Client) GetKLine(ctx context.Context, params GetKLineParams) (*ResultPa
 	if params.To != nil {
 		queryParams["filterEndKlineTimeExclusive"] = strconv.FormatInt(*params.To, 10)
 	}
-	fmt.Println(queryParams)
 
 	resp, err := c.Client.HttpRequest(url, "GET", nil, queryParams)
 	if err != nil {

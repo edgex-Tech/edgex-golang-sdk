@@ -1,12 +1,14 @@
 package order
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/edgex-Tech/edgex-golang-sdk/sdk"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/metadata"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
 	"github.com/edgex-Tech/edgex-golang-sdk/test"
@@ -14,9 +16,71 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func mustGetTestContract(t *testing.T, client *sdk.Client, ctx context.Context) *metadata.Contract {
+	t.Helper()
+
+	metadataResp, err := client.GetMetaData(ctx)
+	assert.NoError(t, err)
+	if metadataResp == nil || metadataResp.Data == nil {
+		t.Fatalf("metadata response is nil")
+	}
+	if len(metadataResp.Data.ContractList) == 0 {
+		t.Fatalf("metadata contract list is empty")
+	}
+
+	for i := range metadataResp.Data.ContractList {
+		contract := &metadataResp.Data.ContractList[i]
+		if strings.TrimSpace(contract.ContractId) != "" {
+			return contract
+		}
+	}
+
+	t.Fatalf("no valid contractId found in metadata")
+	return nil
+}
+
+func ceilToStep(value decimal.Decimal, step string) (decimal.Decimal, error) {
+	stepDec, err := decimal.NewFromString(strings.TrimSpace(step))
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("invalid step %q: %w", step, err)
+	}
+	if !stepDec.GreaterThan(decimal.Zero) {
+		return decimal.Zero, fmt.Errorf("step must be > 0, got %q", step)
+	}
+	return value.Div(stepDec).Ceil().Mul(stepDec), nil
+}
+
+func getReferencePrice(t *testing.T, client *sdk.Client, ctx context.Context, contractID string) decimal.Decimal {
+	t.Helper()
+
+	tickerResp, err := client.Get24HourQuote(ctx, contractID)
+	assert.NoError(t, err)
+	if tickerResp == nil || len(tickerResp.Data) == 0 {
+		t.Fatalf("ticker response is empty for contract %s", contractID)
+	}
+
+	ticker := tickerResp.Data[0]
+	candidates := []*string{ticker.OraclePrice, ticker.IndexPrice, ticker.LastPrice, ticker.Close}
+	for _, candidate := range candidates {
+		if candidate == nil || strings.TrimSpace(*candidate) == "" {
+			continue
+		}
+		price, err := decimal.NewFromString(*candidate)
+		if err == nil && price.GreaterThan(decimal.Zero) {
+			return price
+		}
+	}
+
+	t.Fatalf("no valid reference price found for contract %s", contractID)
+	return decimal.Zero
+}
+
 func TestSign(t *testing.T) {
 	client, err := test.CreateTestClient()
 	assert.NoError(t, err)
+	if strings.TrimSpace(client.GetStarkPriKey()) == "" {
+		t.Skip("stark private key is not configured; skipping stark signature test")
+	}
 
 	// Test message hash - using a fixed hash for consistency
 	messageHash := []byte("test message hash for signing")
@@ -55,7 +119,8 @@ func TestGetActiveOrders(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
-	contractID := "10000001" // BTCUSDT
+	contract := mustGetTestContract(t, client, ctx)
+	contractID := contract.ContractId
 
 	activeOrders, err := client.GetActiveOrders(ctx, &order.GetActiveOrderParams{
 		PaginationParams: order.PaginationParams{
@@ -85,7 +150,8 @@ func TestGetOrderFills(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
-	contractID := "10000001" // BTCUSDT
+	contract := mustGetTestContract(t, client, ctx)
+	contractID := contract.ContractId
 
 	fills, err := client.GetOrderFillTransactions(ctx, &order.OrderFillTransactionParams{
 		PaginationParams: order.PaginationParams{
@@ -122,23 +188,33 @@ func TestCreateAndCancelOrder(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
-	contractID := "20000018"
-	price := decimal.NewFromFloat(60.0)
-	size := decimal.NewFromFloat(0.5)
-	clientOrderID := fmt.Sprintf("sdk-test-%d", time.Now().UnixNano())
+	contract := mustGetTestContract(t, client, ctx)
+	contractID := contract.ContractId
+	size := strings.TrimSpace(contract.MinOrderSize)
+	if size == "" || size == "0" {
+		size = strings.TrimSpace(contract.StepSize)
+	}
+	if size == "" || size == "0" {
+		size = "0.01"
+	}
 
-	// First get metadata
-	metadata, err := client.GetMetaData(ctx)
+	referencePrice := getReferencePrice(t, client, ctx, contractID)
+	targetPrice := referencePrice.Mul(decimal.NewFromFloat(1.02))
+	price, err := ceilToStep(targetPrice, contract.TickSize)
 	assert.NoError(t, err)
-	assert.NotNil(t, metadata)
+	if !price.GreaterThan(decimal.Zero) {
+		price = referencePrice
+	}
+
+	clientOrderID := fmt.Sprintf("sdk-test-%d", time.Now().UnixNano())
 
 	// Create order
 	orderParams := &order.CreateOrderParams{
 		ContractId:    contractID,
 		Price:         price.String(),
-		Size:          size.String(),
+		Size:          size,
 		Type:          "LIMIT",
-		Side:          "BUY",
+		Side:          "SELL",
 		TimeInForce:   "GOOD_TIL_CANCEL",
 		ClientOrderId: &clientOrderID,
 	}
@@ -197,21 +273,15 @@ func TestCreateMarketOrder(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
-	contractID := "10000001" // BTCUSDT
-	size := "0.001"
-
-	// Get metadata to verify price calculation
-	metadataResp, err := client.GetMetaData(ctx)
-	assert.NoError(t, err)
-
-	var contract *metadata.Contract
-	for _, c := range metadataResp.Data.ContractList {
-		if c.ContractId == contractID {
-			contract = &c
-			break
-		}
+	contract := mustGetTestContract(t, client, ctx)
+	contractID := contract.ContractId
+	size := strings.TrimSpace(contract.MinOrderSize)
+	if size == "" || size == "0" {
+		size = strings.TrimSpace(contract.StepSize)
 	}
-	assert.NotNil(t, contract, "Contract should be found")
+	if size == "" || size == "0" {
+		size = "0.01"
+	}
 
 	t.Run("Market Buy Order", func(t *testing.T) {
 		// Create market buy order

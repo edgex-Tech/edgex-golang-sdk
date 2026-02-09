@@ -3,25 +3,91 @@ package ws
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
+
+	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
 )
 
 // Manager handles WebSocket connections
 type Manager struct {
 	publicClient  *Client
 	privateClient *Client
-	baseURL      string
-	accountID    int64
-	starkPriKey  string
-	mu           sync.RWMutex
+	baseURL       string
+	accountID     int64
+	privateWSPath string
+	signingMethod string
+	starkPriKey   string
+	apiKey        string
+	apiPassphrase string
+	apiSecret     string
+	authHeaderKey string
+	mu            sync.RWMutex
+}
+
+// ManagerConfig defines private websocket auth configuration.
+type ManagerConfig struct {
+	APIVersion    string
+	SigningMethod string
+	StarkPriKey   string
+	APIKey        string
+	APIPassphrase string
+	APISecret     string
+	AuthHeaderKey string
+	PrivateWSPath string
 }
 
 // NewManager creates a new WebSocket manager
 func NewManager(baseURL string, accountID int64, starkPriKey string) *Manager {
+	return NewManagerWithConfig(baseURL, accountID, &ManagerConfig{
+		SigningMethod: internal.SigningMethodStark,
+		StarkPriKey:   starkPriKey,
+	})
+}
+
+// NewManagerWithConfig creates a new websocket manager with configurable private auth.
+func NewManagerWithConfig(baseURL string, accountID int64, cfg *ManagerConfig) *Manager {
+	if cfg == nil {
+		cfg = &ManagerConfig{}
+	}
+
+	apiVersion := strings.ToLower(strings.TrimSpace(cfg.APIVersion))
+	if apiVersion == "" {
+		apiVersion = internal.APIVersionV1
+	}
+
+	signingMethod := strings.ToLower(strings.TrimSpace(cfg.SigningMethod))
+	if signingMethod == "" {
+		if apiVersion == internal.APIVersionV2 {
+			signingMethod = internal.SigningMethodHMAC
+		} else {
+			signingMethod = internal.SigningMethodStark
+		}
+	}
+
+	privateWSPath := strings.TrimSpace(cfg.PrivateWSPath)
+	if privateWSPath == "" {
+		privateWSPath = "/api/v1/private/ws"
+	}
+	if !strings.HasPrefix(privateWSPath, "/") {
+		privateWSPath = "/" + privateWSPath
+	}
+
+	authHeaderKey := strings.TrimSpace(cfg.AuthHeaderKey)
+	if authHeaderKey == "" {
+		authHeaderKey = internal.DefaultHeaderKey
+	}
+
 	return &Manager{
-		baseURL:     baseURL,
-		accountID:   accountID,
-		starkPriKey: starkPriKey,
+		baseURL:       strings.TrimRight(strings.TrimSpace(baseURL), "/"),
+		accountID:     accountID,
+		privateWSPath: privateWSPath,
+		signingMethod: signingMethod,
+		starkPriKey:   strings.TrimPrefix(strings.TrimSpace(cfg.StarkPriKey), "0x"),
+		apiKey:        strings.TrimSpace(cfg.APIKey),
+		apiPassphrase: strings.TrimSpace(cfg.APIPassphrase),
+		apiSecret:     cfg.APISecret,
+		authHeaderKey: authHeaderKey,
 	}
 }
 
@@ -35,7 +101,7 @@ func (m *Manager) ConnectPublic(ctx context.Context) error {
 	}
 
 	url := fmt.Sprintf("%s/api/v1/public/ws", m.baseURL)
-	client := NewClient(url, false, 0, "")  // No auth needed for public
+	client := NewClient(url, false, 0, "") // No auth needed for public
 	if err := client.Connect(ctx); err != nil {
 		return err
 	}
@@ -53,8 +119,19 @@ func (m *Manager) ConnectPrivate(ctx context.Context) error {
 		return nil
 	}
 
-	url := fmt.Sprintf("%s/api/v1/private/ws?accountId=%d", m.baseURL, m.accountID)
-	client := NewClient(url, true, m.accountID, m.starkPriKey)
+	url := fmt.Sprintf("%s%s", m.baseURL, m.privateWSPath)
+	if m.signingMethod == internal.SigningMethodStark {
+		url = fmt.Sprintf("%s?accountId=%d", url, m.accountID)
+	}
+	client := NewClientWithConfig(url, true, m.accountID, &PrivateAuthConfig{
+		SigningMethod: m.signingMethod,
+		StarkPriKey:   m.starkPriKey,
+		APIKey:        m.apiKey,
+		APIPassphrase: m.apiPassphrase,
+		APISecret:     m.apiSecret,
+		AuthHeaderKey: m.authHeaderKey,
+		RequestURI:    m.privateWSPath,
+	})
 	if err := client.Connect(ctx); err != nil {
 		return err
 	}

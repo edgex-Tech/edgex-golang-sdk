@@ -1,15 +1,86 @@
 package ws_test
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/ws"
 	"github.com/edgex-Tech/edgex-golang-sdk/test"
 )
+
+type metadataContract struct {
+	ContractID     string `json:"contractId"`
+	IsOpenPosition bool   `json:"isOpenPosition"`
+}
+
+type metadataData struct {
+	ContractList []metadataContract `json:"contractList"`
+}
+
+type metadataResponse struct {
+	Code string       `json:"code"`
+	Data metadataData `json:"data"`
+}
+
+func fetchContractIDFromMetadata(ctx context.Context, baseURL string) (string, error) {
+	baseURL = strings.TrimSpace(strings.TrimRight(baseURL, "/"))
+	if baseURL == "" {
+		return "", fmt.Errorf("base url is empty")
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	candidates := []string{
+		baseURL + "/api/v2/public/meta/getMetaData",
+		baseURL + "/api/v1/public/meta/getMetaData",
+	}
+
+	for _, url := range candidates {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			continue
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			continue
+		}
+
+		body, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if readErr != nil || resp.StatusCode != http.StatusOK {
+			continue
+		}
+
+		var metadataResp metadataResponse
+		if err := json.Unmarshal(body, &metadataResp); err != nil {
+			continue
+		}
+		if metadataResp.Code != "SUCCESS" {
+			continue
+		}
+
+		for _, c := range metadataResp.Data.ContractList {
+			if c.IsOpenPosition && strings.TrimSpace(c.ContractID) != "" {
+				return c.ContractID, nil
+			}
+		}
+		for _, c := range metadataResp.Data.ContractList {
+			if strings.TrimSpace(c.ContractID) != "" {
+				return c.ContractID, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("no valid contract id found from metadata")
+}
 
 func TestWebSocket(t *testing.T) {
 	ctx := test.GetTestContext()
@@ -18,7 +89,7 @@ func TestWebSocket(t *testing.T) {
 		t.Skip("Skipping test: TEST_WS_BASE_URL environment variable is not set")
 	}
 
-	manager := ws.NewManager(baseURL, 0, "")  // No auth needed for public WebSocket
+	manager := ws.NewManager(baseURL, 0, "") // No auth needed for public WebSocket
 
 	// Connect to public WebSocket
 	err := manager.ConnectPublic(ctx)
@@ -26,7 +97,12 @@ func TestWebSocket(t *testing.T) {
 		t.Fatalf("Failed to connect to public WebSocket: %v", err)
 	}
 
-	contractID := "10000001" // BTCUSDT
+	metadataBaseURL := os.Getenv("TEST_BASE_URL")
+	contractID, err := fetchContractIDFromMetadata(ctx, metadataBaseURL)
+	if err != nil {
+		t.Fatalf("Failed to resolve contract ID from metadata: %v", err)
+	}
+	t.Logf("Using contract ID from metadata: %s", contractID)
 
 	// Create channels to track message receipt
 	tickerMsgCh := make(chan struct{})
@@ -42,9 +118,9 @@ func TestWebSocket(t *testing.T) {
 	// Test cases for different subscription types
 	var tickerReceived, klineReceived, depthReceived, tradesReceived bool
 	testCases := []struct {
-		name     string
-		subFunc  func() error
-		msgCh    chan struct{}
+		name    string
+		subFunc func() error
+		msgCh   chan struct{}
 	}{
 		{
 			name: "Market Ticker",
@@ -140,17 +216,43 @@ func TestPrivateWebSocket(t *testing.T) {
 		t.Fatalf("Invalid TEST_ACCOUNT_ID: %v", err)
 	}
 
-	starkPrivateKey := os.Getenv("TEST_STARK_PRIVATE_KEY")
-	if starkPrivateKey == "" {
-		t.Skip("Skipping test: TEST_STARK_PRIVATE_KEY environment variable is not set")
+	signingMethod := strings.ToLower(strings.TrimSpace(os.Getenv("TEST_WS_SIGNING_METHOD")))
+	if signingMethod == "" {
+		if os.Getenv("TEST_API_KEY") != "" &&
+			os.Getenv("TEST_API_PASSPHRASE") != "" &&
+			os.Getenv("TEST_API_SECRET") != "" {
+			signingMethod = "hmac"
+		} else {
+			signingMethod = "stark"
+		}
 	}
 
 	ctx := test.GetTestContext()
-	manager := ws.NewManager(
-		baseURL,
-		accountID,
-		starkPrivateKey,
-	)
+	var manager *ws.Manager
+	if signingMethod == "hmac" {
+		apiKey := strings.TrimSpace(os.Getenv("TEST_API_KEY"))
+		apiPassphrase := strings.TrimSpace(os.Getenv("TEST_API_PASSPHRASE"))
+		apiSecret := os.Getenv("TEST_API_SECRET")
+		if apiKey == "" || apiPassphrase == "" || apiSecret == "" {
+			t.Skip("Skipping v2 private ws test: TEST_API_KEY/TEST_API_PASSPHRASE/TEST_API_SECRET are required")
+		}
+
+		manager = ws.NewManagerWithConfig(baseURL, accountID, &ws.ManagerConfig{
+			APIVersion:    "v2",
+			SigningMethod: "hmac",
+			APIKey:        apiKey,
+			APIPassphrase: apiPassphrase,
+			APISecret:     apiSecret,
+			AuthHeaderKey: strings.TrimSpace(os.Getenv("TEST_AUTH_HEADER_KEY")),
+		})
+	} else {
+		starkPrivateKey := strings.TrimSpace(os.Getenv("TEST_STARK_PRIVATE_KEY"))
+		if starkPrivateKey == "" {
+			t.Skip("Skipping v1 private ws test: TEST_STARK_PRIVATE_KEY environment variable is not set")
+		}
+
+		manager = ws.NewManager(baseURL, accountID, starkPrivateKey)
+	}
 
 	// Connect to private WebSocket
 	err = manager.ConnectPrivate(ctx)

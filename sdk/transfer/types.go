@@ -189,12 +189,17 @@ type GetWithdrawAvailableAmountParams struct {
 
 // CreateTransferOutParams represents parameters for CreateTransferOut
 type CreateTransferOutParams struct {
+	ClientTransferId  string
 	CoinId            string
 	Amount            string
 	ReceiverAccountId string
 	ReceiverL2Key     string
 	TransferReason    string
 	ExpireTime        time.Time
+	L2Nonce           string
+	L2ExpireTime      string
+	L2Signature       string
+	Signer            string
 	ExtraType         *string
 	ExtraDataJson     *string
 }
