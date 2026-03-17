@@ -1,0 +1,12 @@
+# EdgeX Golang SDK Configuration
+
+# Logging configuration
+logging:
+  # Error log format: "json" or "text"
+  error_log_format: "json"
+  
+  # Enable request logging (prints method, URL, headers, body)
+  enable_request_log: true
+  
+  # Enable response logging (prints status, headers, body, duration)
+  enable_response_log: true
