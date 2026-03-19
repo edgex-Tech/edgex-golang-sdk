@@ -174,6 +174,20 @@ func (m *Manager) OnPrivateMessage(msgType string, handler MessageHandler) error
 	return nil
 }
 
+// OnPrivateMessageHook registers a hook for all private websocket messages.
+func (m *Manager) OnPrivateMessageHook(hook MessageHandler) error {
+	m.mu.RLock()
+	client := m.privateClient
+	m.mu.RUnlock()
+
+	if client == nil {
+		return fmt.Errorf("private WebSocket connection not established")
+	}
+
+	client.OnMessageHook(hook)
+	return nil
+}
+
 // OnPublicMessage registers a handler for all public WebSocket messages
 func (m *Manager) OnPublicMessage(handler MessageHandler) error {
 	m.mu.RLock()

@@ -1,6 +1,7 @@
 package order
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -31,7 +32,9 @@ func TestCreateOrderV2UsesEIP712Signature(t *testing.T) {
 	defer srv.Close()
 
 	mockCli := newMockClient(42, "0x59c6995e998f97a5a0044966f0945380f7d7f4fbcbe8f85f8f19853f51e7f7b4", srv.URL, func(urlStr, method string, data map[string]interface{}, params map[string]string) (*http.Response, error) {
-		req, _ := http.NewRequest(method, urlStr, nil)
+		payload, _ := json.Marshal(data)
+		req, _ := http.NewRequest(method, urlStr, bytes.NewReader(payload))
+		req.Header.Set("Content-Type", "application/json")
 		return srv.Client().Do(req)
 	})
 
