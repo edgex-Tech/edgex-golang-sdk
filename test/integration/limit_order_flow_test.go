@@ -38,7 +38,7 @@ func TestIntegration_LimitOrderFlow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, metaResp)
 	assert.NotEmpty(t, metaResp.Data.ContractList)
-	
+
 	contract := &metaResp.Data.ContractList[0]
 	contractID := contract.ContractId
 	t.Logf("Using contract: %s", contractID)
@@ -56,7 +56,7 @@ func TestIntegration_LimitOrderFlow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, quoteResp)
 	assert.NotEmpty(t, quoteResp.Data)
-	
+
 	var lastPrice decimal.Decimal
 	if quoteResp.Data[0].LastPrice != nil {
 		lastPrice, err = decimal.NewFromString(*quoteResp.Data[0].LastPrice)
@@ -100,7 +100,7 @@ func TestIntegration_LimitOrderFlow(t *testing.T) {
 	assert.NotNil(t, createResp)
 	assert.NotNil(t, createResp.Data)
 	assert.NotNil(t, createResp.Data.OrderId)
-	
+
 	orderID := *createResp.Data.OrderId
 	t.Logf("Order created: ID=%s, ClientOrderID=%s", orderID, clientOrderID)
 
@@ -111,13 +111,21 @@ func TestIntegration_LimitOrderFlow(t *testing.T) {
 	t.Log("Step 6: Querying active orders...")
 	activeResp, err := client.GetActiveOrders(ctx, &order.GetActiveOrderParams{
 		PaginationParams: order.PaginationParams{
-			Size: "10",
+			Size: "1",
 		},
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, activeResp)
+	activeParamsJSON, _ := json.MarshalIndent(order.GetActiveOrderParams{
+		PaginationParams: order.PaginationParams{
+			Size: "1",
+		},
+	}, "", "  ")
+	activeRespJSON, _ := json.MarshalIndent(activeResp, "", "  ")
+	t.Logf("GetActiveOrders params: %s", string(activeParamsJSON))
+	t.Logf("GetActiveOrders response: %s", string(activeRespJSON))
 	t.Logf("Active orders count: %d", len(activeResp.Data.DataList))
-	
+
 	// Verify our order is in active list
 	orderFound := false
 	for _, o := range activeResp.Data.DataList {
@@ -137,7 +145,7 @@ func TestIntegration_LimitOrderFlow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, orderByIDResp)
 	assert.NotEmpty(t, orderByIDResp.Data)
-	
+
 	foundOrder := orderByIDResp.Data[0]
 	if foundOrder.Id != nil {
 		assert.Equal(t, orderID, *foundOrder.Id)
@@ -166,7 +174,7 @@ func TestIntegration_LimitOrderFlow(t *testing.T) {
 	verifyResp, err := client.GetOrdersByID(ctx, []string{orderID})
 	assert.NoError(t, err)
 	assert.NotNil(t, verifyResp)
-	
+
 	if len(verifyResp.Data) > 0 {
 		finalOrder := verifyResp.Data[0]
 		if finalOrder.Status != nil {

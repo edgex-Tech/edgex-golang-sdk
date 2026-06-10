@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -35,6 +36,7 @@ func TestIntegration_WebSocketPublic(t *testing.T) {
 	err := manager.ConnectPublic(ctx)
 	assert.NoError(t, err)
 	t.Logf("Connected to public WebSocket: %s", wsBaseURL)
+	t.Logf("Public WS connect request: baseURL=%s path=%s", wsBaseURL, "/api/v1/public/ws")
 
 	// Wait for connection to stabilize
 	time.Sleep(1 * time.Second)
@@ -56,6 +58,7 @@ func TestIntegration_WebSocketPublic(t *testing.T) {
 		t.Logf("Received ticker data: %s", string(msg))
 	}
 
+	t.Logf("Public WS subscribe request: channel=%s", fmt.Sprintf("ticker.%s", contractID))
 	err = manager.SubscribeMarketTicker(contractID, handler)
 	assert.NoError(t, err)
 	t.Log("Subscribed to market ticker")
@@ -74,8 +77,7 @@ func TestIntegration_WebSocketPublic(t *testing.T) {
 				goto cleanup
 			}
 		case <-timeout:
-			t.Log("No ticker data received within 10 seconds (may be normal if market is quiet)")
-			goto cleanup
+			t.Fatal("No ticker data received within 10 seconds")
 		}
 	}
 
@@ -122,6 +124,7 @@ func TestIntegration_WebSocketPrivate(t *testing.T) {
 	t.Logf("API Key: %s", apiKey)
 	t.Logf("API Passphrase: %s", apiPassphrase)
 	t.Logf("API Secret length: %d", len(apiSecret))
+	t.Logf("Private WS connect request: baseURL=%s path=%s accountId=%d", wsBaseURL, "/api/v1/private/ws", accountID)
 
 	manager := ws.NewManager(wsBaseURL, accountID, apiKey, apiPassphrase, apiSecret)
 	assert.NotNil(t, manager)
@@ -151,17 +154,24 @@ func TestIntegration_WebSocketPrivate(t *testing.T) {
 	// Step 4: Register handler for private messages
 	t.Log("Step 4: Registering private message handlers...")
 	updateCount := 0
+	done := make(chan struct{}, 1)
 	handler := func(msg []byte) {
 		updateCount++
 		t.Logf("Received private message #%d: %s", updateCount, string(msg))
+		select {
+		case done <- struct{}{}:
+		default:
+		}
 	}
 
 	// Register handlers for different message types
+	t.Logf("Private WS handler registration: group=%s", "account")
 	err = manager.OnPrivateMessage("account", handler)
 	if err != nil {
 		t.Logf("Warning: Failed to register account handler: %v", err)
 	}
 
+	t.Logf("Private WS handler registration: group=%s", "order")
 	err = manager.OnPrivateMessage("order", handler)
 	if err != nil {
 		t.Logf("Warning: Failed to register order handler: %v", err)
@@ -169,13 +179,19 @@ func TestIntegration_WebSocketPrivate(t *testing.T) {
 
 	// Step 5: Monitor for updates (for a short period)
 	t.Log("Step 5: Monitoring for private messages...")
-	time.Sleep(5 * time.Second)
+	select {
+	case <-done:
+		t.Log("Received private data successfully")
+	case <-time.After(5 * time.Second):
+		t.Fatal("No private WebSocket data received within 5 seconds")
+	}
 
 	// Step 6: Clean up
 	t.Log("Step 6: Cleaning up...")
 	manager.Close()
 	t.Log("Closed private WebSocket connection")
 
+	assert.Greater(t, updateCount, 0, "private WebSocket should receive at least one message")
 	t.Logf("Private WebSocket test completed (received %d messages)", updateCount)
 }
 

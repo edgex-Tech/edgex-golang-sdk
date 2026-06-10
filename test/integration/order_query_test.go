@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -34,10 +35,10 @@ func TestIntegration_OrderQuery(t *testing.T) {
 	contract, err := test.ResolveTestContract(ctx, client)
 	assert.NoError(t, err)
 	contractID := contract.ContractId
-	
+
 	quoteResp, err := client.Get24HourQuote(ctx, contractID)
 	assert.NoError(t, err)
-	
+
 	var lastPrice decimal.Decimal
 	if len(quoteResp.Data) > 0 && quoteResp.Data[0].LastPrice != nil {
 		lastPrice, _ = decimal.NewFromString(*quoteResp.Data[0].LastPrice)
@@ -100,7 +101,7 @@ func TestIntegration_OrderQuery(t *testing.T) {
 	t.Log("Step 3: Querying active orders...")
 	activeResp, err := client.GetActiveOrders(ctx, &order.GetActiveOrderParams{
 		PaginationParams: order.PaginationParams{
-			Size: "20",
+			Size: "1",
 		},
 		OrderFilterParams: order.OrderFilterParams{
 			FilterContractIdList: []string{contractID},
@@ -108,8 +109,20 @@ func TestIntegration_OrderQuery(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, activeResp)
+	activeParams := order.GetActiveOrderParams{
+		PaginationParams: order.PaginationParams{
+			Size: "1",
+		},
+		OrderFilterParams: order.OrderFilterParams{
+			FilterContractIdList: []string{contractID},
+		},
+	}
+	activeParamsJSON, _ := json.MarshalIndent(activeParams, "", "  ")
+	activeRespJSON, _ := json.MarshalIndent(activeResp, "", "  ")
+	t.Logf("GetActiveOrders params: %s", string(activeParamsJSON))
+	t.Logf("GetActiveOrders response: %s", string(activeRespJSON))
 	t.Logf("Total active orders for contract %s: %d", contractID, len(activeResp.Data.DataList))
-	
+
 	// Verify our orders are in the list
 	foundCount := 0
 	for _, o := range activeResp.Data.DataList {
@@ -133,7 +146,7 @@ func TestIntegration_OrderQuery(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, clientOrderResp)
 	assert.GreaterOrEqual(t, len(clientOrderResp.Data), 2, "Should find at least 2 orders by client ID")
-	
+
 	for i, o := range clientOrderResp.Data {
 		if o.ClientOrderId != nil && o.Status != nil {
 			t.Logf("Order %d by ClientID: ClientOrderID=%s, Status=%s", i+1, *o.ClientOrderId, *o.Status)
@@ -146,7 +159,7 @@ func TestIntegration_OrderQuery(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, orderIDResp)
 	assert.Equal(t, len(orderIDs), len(orderIDResp.Data), "Should find all orders by ID")
-	
+
 	for i, o := range orderIDResp.Data {
 		if o.Id != nil && o.Price != nil && o.Size != nil {
 			t.Logf("Order %d details: ID=%s, Price=%s, Size=%s", i+1, *o.Id, *o.Price, *o.Size)
@@ -157,7 +170,7 @@ func TestIntegration_OrderQuery(t *testing.T) {
 	t.Log("Step 6: Querying order fill transactions...")
 	fillResp, err := client.GetOrderFillTransactions(ctx, &order.OrderFillTransactionParams{
 		PaginationParams: order.PaginationParams{
-			Size: "10",
+			Size: "1",
 		},
 		OrderFilterParams: order.OrderFilterParams{
 			FilterContractIdList: []string{contractID},
@@ -165,6 +178,18 @@ func TestIntegration_OrderQuery(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, fillResp)
+	fillParams := order.OrderFillTransactionParams{
+		PaginationParams: order.PaginationParams{
+			Size: "1",
+		},
+		OrderFilterParams: order.OrderFilterParams{
+			FilterContractIdList: []string{contractID},
+		},
+	}
+	fillParamsJSON, _ := json.MarshalIndent(fillParams, "", "  ")
+	fillRespJSON, _ := json.MarshalIndent(fillResp, "", "  ")
+	t.Logf("GetOrderFillTransactions params: %s", string(fillParamsJSON))
+	t.Logf("GetOrderFillTransactions response: %s", string(fillRespJSON))
 	t.Logf("Total fill transactions: %d", len(fillResp.Data.DataList))
 
 	// Step 7: Clean up - cancel all test orders
@@ -184,14 +209,14 @@ func TestIntegration_OrderQuery(t *testing.T) {
 	// Step 8: Verify orders are canceled
 	t.Log("Step 8: Verifying orders are canceled...")
 	time.Sleep(1 * time.Second)
-	
+
 	verifyResp, err := client.GetOrdersByID(ctx, orderIDs)
 	assert.NoError(t, err)
 	if verifyResp != nil {
 		for _, o := range verifyResp.Data {
 			if o.Status != nil {
 				status := strings.ToUpper(*o.Status)
-				assert.Contains(t, []string{"CANCELLED", "CANCELING", "CANCELED"}, status, 
+				assert.Contains(t, []string{"CANCELLED", "CANCELING", "CANCELED"}, status,
 					"Order should be cancelled")
 			}
 		}
@@ -217,7 +242,7 @@ func TestIntegration_OrderFiltering(t *testing.T) {
 
 	activeResp, err := client.GetActiveOrders(ctx, &order.GetActiveOrderParams{
 		PaginationParams: order.PaginationParams{
-			Size: "10",
+			Size: "1",
 		},
 		OrderFilterParams: order.OrderFilterParams{
 			FilterContractIdList: []string{contractID},
@@ -225,28 +250,56 @@ func TestIntegration_OrderFiltering(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, activeResp)
+	activeFilterParamsJSON, _ := json.MarshalIndent(order.GetActiveOrderParams{
+		PaginationParams: order.PaginationParams{
+			Size: "1",
+		},
+		OrderFilterParams: order.OrderFilterParams{
+			FilterContractIdList: []string{contractID},
+		},
+	}, "", "  ")
+	activeFilterRespJSON, _ := json.MarshalIndent(activeResp, "", "  ")
+	t.Logf("Filtered GetActiveOrders params: %s", string(activeFilterParamsJSON))
+	t.Logf("Filtered GetActiveOrders response: %s", string(activeFilterRespJSON))
 	t.Logf("Active orders for contract %s: %d", contractID, len(activeResp.Data.DataList))
 
 	// Test 2: Pagination
 	t.Log("Test 2: Testing pagination...")
 	page1, err := client.GetActiveOrders(ctx, &order.GetActiveOrderParams{
 		PaginationParams: order.PaginationParams{
-			Size: "5",
+			Size: "1",
 		},
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, page1)
+	page1ParamsJSON, _ := json.MarshalIndent(order.GetActiveOrderParams{
+		PaginationParams: order.PaginationParams{
+			Size: "1",
+		},
+	}, "", "  ")
+	page1RespJSON, _ := json.MarshalIndent(page1, "", "  ")
+	t.Logf("GetActiveOrders page1 params: %s", string(page1ParamsJSON))
+	t.Logf("GetActiveOrders page1 response: %s", string(page1RespJSON))
 	t.Logf("Page 1 orders: %d", len(page1.Data.DataList))
 
 	if page1.Data.NextPageOffsetData != nil && *page1.Data.NextPageOffsetData != "" {
 		page2, err := client.GetActiveOrders(ctx, &order.GetActiveOrderParams{
 			PaginationParams: order.PaginationParams{
-				Size:       "5",
+				Size:       "1",
 				OffsetData: *page1.Data.NextPageOffsetData,
 			},
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, page2)
+		page2ParamsJSON, _ := json.MarshalIndent(order.GetActiveOrderParams{
+			PaginationParams: order.PaginationParams{
+				Size:       "1",
+				OffsetData: *page1.Data.NextPageOffsetData,
+			},
+		}, "", "  ")
+		page2RespJSON, _ := json.MarshalIndent(page2, "", "  ")
+		t.Logf("GetActiveOrders page2 params: %s", string(page2ParamsJSON))
+		t.Logf("GetActiveOrders page2 response: %s", string(page2RespJSON))
 		t.Logf("Page 2 orders: %d", len(page2.Data.DataList))
 	}
 

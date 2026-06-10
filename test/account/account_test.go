@@ -9,6 +9,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func logJSON(t *testing.T, label string, value interface{}) {
+	t.Helper()
+	data, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		t.Logf("%s: <marshal error: %v>", label, err)
+		return
+	}
+	t.Logf("%s: %s", label, string(data))
+}
+
 func TestGetAccountAsset(t *testing.T) {
 	client, err := test.CreateTestClient()
 	assert.NoError(t, err)
@@ -66,12 +76,12 @@ func TestGetPositionTransactionPage(t *testing.T) {
 	ctx := test.GetTestContext()
 
 	params := account.GetPositionTransactionPageParams{
-		Size: 10,
+		Size: 1,
 	}
+	logJSON(t, "GetPositionTransactionPage params", params)
 
 	transactions, err := client.GetPositionTransactionPage(ctx, params)
-	jsonData, _ := json.MarshalIndent(transactions, "", "  ")
-	t.Logf("Position Transaction Page: %s", string(jsonData))
+	logJSON(t, "GetPositionTransactionPage response", transactions)
 	assert.NoError(t, err)
 	assert.NotNil(t, transactions)
 	assert.Equal(t, "SUCCESS", transactions.Code)
@@ -92,12 +102,12 @@ func TestGetCollateralTransactionPage(t *testing.T) {
 	ctx := test.GetTestContext()
 
 	params := account.GetCollateralTransactionPageParams{
-		Size: 10,
+		Size: 1,
 	}
+	logJSON(t, "GetCollateralTransactionPage params", params)
 
 	transactions, err := client.GetCollateralTransactionPage(ctx, params)
-	jsonData, _ := json.MarshalIndent(transactions, "", "  ")
-	t.Logf("Collateral Transaction Page: %s", string(jsonData))
+	logJSON(t, "GetCollateralTransactionPage response", transactions)
 	assert.NoError(t, err)
 	assert.NotNil(t, transactions)
 	assert.Equal(t, "SUCCESS", transactions.Code)
@@ -118,12 +128,12 @@ func TestGetPositionTermPage(t *testing.T) {
 	ctx := test.GetTestContext()
 
 	params := account.GetPositionTermPageParams{
-		Size: 10,
+		Size: 1,
 	}
+	logJSON(t, "GetPositionTermPage params", params)
 
 	terms, err := client.GetPositionTermPage(ctx, params)
-	jsonData, _ := json.MarshalIndent(terms, "", "  ")
-	t.Logf("Position Term Page: %s", string(jsonData))
+	logJSON(t, "GetPositionTermPage response", terms)
 	assert.NoError(t, err)
 	assert.NotNil(t, terms)
 	assert.Equal(t, "SUCCESS", terms.Code)
@@ -182,13 +192,13 @@ func TestGetAccountAssetSnapshotPage(t *testing.T) {
 	assert.NoError(t, err)
 
 	params := account.GetAccountAssetSnapshotPageParams{
-		Size:   10,
+		Size:   1,
 		CoinID: coinID,
 	}
+	logJSON(t, "GetAccountAssetSnapshotPage params", params)
 
 	snapshots, err := client.GetAccountAssetSnapshotPage(ctx, params)
-	jsonData, _ := json.MarshalIndent(snapshots, "", "  ")
-	t.Logf("Account Asset Snapshot Page: %s", string(jsonData))
+	logJSON(t, "GetAccountAssetSnapshotPage response", snapshots)
 	assert.NoError(t, err)
 	assert.NotNil(t, snapshots)
 	assert.Equal(t, "SUCCESS", snapshots.Code)
@@ -330,16 +340,15 @@ func TestGetPositionOrders(t *testing.T) {
 	// Try different termCount values
 	for _, termCount := range []int32{0, 1, 2} {
 		t.Logf("\n=== Testing with termCount=%d ===", termCount)
-		
+
 		params := account.GetPositionOrdersParams{
 			ContractId: "10000001", // BTCUSDC contract (required)
 			TermCount:  termCount,  // Position term count (required)
-			Page:       1,          // Page number (optional, default: 1)  
-			PageSize:   10,         // Items per page (optional, range: 1-100, default: 20)
+			Page:       1,          // Page number (optional, default: 1)
+			PageSize:   1,          // Items per page (optional, range: 1-100, default: 20)
 		}
 
-		t.Logf("Request: termCount=%d, page=%d, pageSize=%d", 
-			params.TermCount, params.Page, params.PageSize)
+		logJSON(t, "GetPositionOrders params", params)
 
 		orders, err := client.GetPositionOrders(ctx, params)
 
@@ -349,12 +358,13 @@ func TestGetPositionOrders(t *testing.T) {
 		}
 
 		if orders != nil && orders.Data != nil {
-			t.Logf("Response: total=%d, orderList length=%d", 
+			logJSON(t, "GetPositionOrders response", orders)
+			t.Logf("Response: total=%d, orderList length=%d",
 				orders.Data.Total, len(orders.Data.OrderList))
-			
+
 			if len(orders.Data.OrderList) > 0 {
 				t.Logf("✅ Found orders! First order: ID=%s, Type=%s, Side=%s, Status=%s",
-					orders.Data.OrderList[0].ID, orders.Data.OrderList[0].Type, 
+					orders.Data.OrderList[0].ID, orders.Data.OrderList[0].Type,
 					orders.Data.OrderList[0].Side, orders.Data.OrderList[0].Status)
 				break // Found orders, stop testing
 			}
@@ -369,8 +379,9 @@ func TestGetAccountPage(t *testing.T) {
 	ctx := test.GetTestContext()
 
 	params := account.GetAccountPageParams{
-		Size: 10,
+		Size: 1,
 	}
+	logJSON(t, "GetAccountPage params", params)
 
 	accountPage, err := client.GetAccountPage(ctx, params)
 
@@ -388,8 +399,7 @@ func TestGetAccountPage(t *testing.T) {
 	assert.Equal(t, "SUCCESS", accountPage.Code)
 	assert.NotNil(t, accountPage.Data)
 	assert.NotNil(t, accountPage.Data.DataList)
+	logJSON(t, "GetAccountPage response", accountPage)
 
 	t.Logf("Account page count: %d", len(accountPage.Data.DataList))
 }
-
-

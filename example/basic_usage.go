@@ -10,10 +10,11 @@ import (
 	"time"
 
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/asset"
+	"github.com/edgex-Tech/edgex-golang-sdk/sdk/account"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/quote"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/transfer"
+	"github.com/edgex-Tech/edgex-golang-sdk/sdk/unified_asset"
 	"github.com/shopspring/decimal"
 )
 
@@ -70,7 +71,7 @@ func main() {
 	}
 
 	// Get account assets
-	result, err := client.Account.GetAccountAsset(ctx)
+	result, err := client.GetAccountAsset(ctx)
 	if err != nil {
 		log.Fatalf("Failed to get account asset: %v", err)
 	}
@@ -148,17 +149,6 @@ func main() {
 	}
 	printJSON("Transfer out result:", transferResult)
 
-	assetOrdersParams := asset.GetAllOrdersPageParams{
-		StartTime: strconv.FormatInt(1761408000, 10),
-		EndTime:   strconv.FormatInt(1762099199, 10),
-		Size:      "10",
-	}
-	assetOrdersResp, err := client.Asset.GetAllOrdersPage(ctx, assetOrdersParams)
-	if err != nil {
-		log.Fatalf("Failed to get asset orders page: %v", err)
-	}
-	printJSON("GetAllOrdersPage", assetOrdersResp)
-
 	maxOrderSize, err := client.GetMaxOrderSize(ctx, "10000001", decimal.New(1000000, 10))
 	if err != nil {
 		log.Fatalf("Failed to get MaxOrderSize: %v", err)
@@ -218,14 +208,23 @@ func main() {
 	}
 	printJSON("Order canceled:", cancelResult)
 
-	// Create a normal withdrawal
-	createWithdrawResult, err := client.CreateNormalWithdraw(ctx, &asset.CreateNormalWithdrawParams{
-		CoinId:     "1000",
-		Amount:     "10",
-		EthAddress: "your_eth_address",
+	setMarginModeResult, err := client.SetMarginMode(ctx, &account.SetMarginModeParams{
+		ContractID: "10000004",
+		MarginMode: "ISOLATED",
 	})
 	if err != nil {
-		log.Fatalf("Failed to create withdrawal: %v", err)
+		log.Fatalf("Failed to set margin mode: %v", err)
 	}
-	printJSON("create withdraw result:", createWithdrawResult)
+	printJSON("SetMarginMode result:", setMarginModeResult)
+
+	createWithdrawResult, err := client.CreateWithdraw(ctx, unified_asset.CreateWithdrawParams{
+		AmountRaw:   "1000000",
+		UserAddress: "your_evm_address",
+		Asset:       "usdc",
+		Network:     "mainnet",
+	})
+	if err != nil {
+		log.Fatalf("Failed to create unified-asset withdraw: %v", err)
+	}
+	printJSON("Unified-asset withdraw result:", createWithdrawResult)
 }

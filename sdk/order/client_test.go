@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -17,6 +18,108 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestGetActiveOrdersUsesListBooleanFilters(t *testing.T) {
+	var gotPath string
+	var gotMethod string
+	var gotParams map[string]string
+
+	mockCli := newMockClient(42, "", "https://example.com", func(urlStr, method string, data map[string]interface{}, params map[string]string) (*http.Response, error) {
+		gotMethod = method
+		gotParams = params
+		req, _ := http.NewRequest(method, urlStr, nil)
+		gotPath = req.URL.Path
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"code":"SUCCESS","data":{"dataList":[]}}`)),
+			Header:     make(http.Header),
+		}, nil
+	})
+
+	client := NewClient(mockCli)
+	_, err := client.GetActiveOrders(context.Background(), &GetActiveOrderParams{
+		PaginationParams: PaginationParams{Size: "10"},
+		OrderFilterParams: OrderFilterParams{
+			FilterIsLiquidate:    boolPtr(true),
+			FilterIsDeleverage:   boolPtr(false),
+			FilterIsPositionTpsl: boolPtr(true),
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "GET", gotMethod)
+	assert.Equal(t, "/api/v2/private/order/getActiveOrderPage", gotPath)
+	assert.Equal(t, "true", gotParams["filterIsLiquidateList"])
+	assert.Equal(t, "false", gotParams["filterIsDeleverageList"])
+	assert.Equal(t, "true", gotParams["filterIsPositionTpslList"])
+	assert.NotContains(t, gotParams, "filterIsLiquidate")
+	assert.NotContains(t, gotParams, "filterIsDeleverage")
+	assert.NotContains(t, gotParams, "filterIsPositionTpsl")
+}
+
+func TestGetOrderFillTransactionsUsesListBooleanFilters(t *testing.T) {
+	var gotParams map[string]string
+
+	mockCli := newMockClient(42, "", "https://example.com", func(urlStr, method string, data map[string]interface{}, params map[string]string) (*http.Response, error) {
+		gotParams = params
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"code":"SUCCESS","data":{"dataList":[]}}`)),
+			Header:     make(http.Header),
+		}, nil
+	})
+
+	client := NewClient(mockCli)
+	_, err := client.GetOrderFillTransactions(context.Background(), &OrderFillTransactionParams{
+		PaginationParams: PaginationParams{Size: "10"},
+		OrderFilterParams: OrderFilterParams{
+			FilterIsLiquidate:    boolPtr(true),
+			FilterIsDeleverage:   boolPtr(false),
+			FilterIsPositionTpsl: boolPtr(true),
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "true", gotParams["filterIsLiquidateList"])
+	assert.Equal(t, "false", gotParams["filterIsDeleverageList"])
+	assert.Equal(t, "true", gotParams["filterIsPositionTpslList"])
+	assert.NotContains(t, gotParams, "filterIsLiquidate")
+	assert.NotContains(t, gotParams, "filterIsDeleverage")
+	assert.NotContains(t, gotParams, "filterIsPositionTpsl")
+}
+
+func TestGetHistoryOrderPageUsesListBooleanFilters(t *testing.T) {
+	var gotBody map[string]interface{}
+
+	mockCli := newMockClient(42, "", "https://example.com", func(urlStr, method string, data map[string]interface{}, params map[string]string) (*http.Response, error) {
+		gotBody = data
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"code":"SUCCESS","data":{"dataList":[],"hasNext":false,"offsetData":""}}`)),
+			Header:     make(http.Header),
+		}, nil
+	})
+
+	client := NewClient(mockCli)
+	_, err := client.GetHistoryOrderPage(context.Background(), &GetHistoryOrderPageParams{
+		Size:                 10,
+		FilterIsLiquidate:    boolPtr(true),
+		FilterIsDeleverage:   boolPtr(false),
+		FilterIsPositionTpsl: boolPtr(true),
+		FilterOrderIdList:    []string{"1"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []bool{true}, gotBody["filterIsLiquidateList"])
+	assert.Equal(t, []bool{false}, gotBody["filterIsDeleverageList"])
+	assert.Equal(t, []bool{true}, gotBody["filterIsPositionTpslList"])
+	assert.Equal(t, []string{"1"}, gotBody["filterOrderIdList"])
+	assert.NotContains(t, gotBody, "filterIsLiquidate")
+	assert.NotContains(t, gotBody, "filterIsDeleverage")
+	assert.NotContains(t, gotBody, "filterIsPositionTpsl")
+	assert.NotContains(t, gotBody, "filterClientOrderIdList")
+}
+
+func boolPtr(v bool) *bool {
+	return &v
+}
 
 func TestCreateOrderV2UsesEIP712Signature(t *testing.T) {
 	var gotPath string

@@ -17,13 +17,13 @@ import (
 	"time"
 
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/account"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/asset"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/funding"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/metadata"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/quote"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/transfer"
+	"github.com/edgex-Tech/edgex-golang-sdk/sdk/unified_asset"
 	"github.com/shopspring/decimal"
 )
 
@@ -58,13 +58,13 @@ type Client struct {
 	metadataCacheTTL  *time.Duration
 
 	// Sub-clients
-	Order    *order.Client
-	Metadata *metadata.Client
-	Account  *account.Client
-	Quote    *quote.Client
-	Funding  *funding.Client
-	Transfer *transfer.Client
-	Asset    *asset.Client
+	Order        *order.Client
+	Metadata     *metadata.Client
+	Account      *account.Client
+	Quote        *quote.Client
+	Funding      *funding.Client
+	Transfer     *transfer.Client
+	UnifiedAsset *unified_asset.Client
 }
 
 // ClientConfig holds the configuration for creating a new Client
@@ -124,7 +124,7 @@ func NewClient(cfg *ClientConfig) (*Client, error) {
 	client.Quote = quote.NewClient(client)
 	client.Funding = funding.NewClient(client)
 	client.Transfer = transfer.NewClient(client)
-	client.Asset = asset.NewClient(client)
+	client.UnifiedAsset = unified_asset.NewClient(client)
 
 	return client, nil
 }
@@ -607,32 +607,14 @@ func (c *Client) CreateOrder(ctx context.Context, params *order.CreateOrderParam
 	return c.Order.CreateOrder(ctx, params, metadataResp.Data, l2PriceDecimal)
 }
 
-func (c *Client) CreateNormalWithdraw(ctx context.Context, params *asset.CreateNormalWithdrawParams) (*asset.ResultCreateNormalWithdraw, error) {
-	// Get metadata first
-	metadataResp, err := c.GetMetaData(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get metadata: %w", err)
-	}
-
-	return c.Asset.CreateNormalWithdraw(ctx, params, metadataResp.Data)
+// CreateWithdraw submits a unified-asset withdrawal using the wallet EIP-712 flow.
+func (c *Client) CreateWithdraw(ctx context.Context, params unified_asset.CreateWithdrawParams) (map[string]interface{}, error) {
+	return c.UnifiedAsset.CreateWithdraw(ctx, params)
 }
 
-func (c *Client) PrepareWithdrawSignInfo(ctx context.Context, params asset.PrepareWithdrawSignInfoParams) (*asset.PreparedWithdrawSignInfo, error) {
-	metadataResp, err := c.GetMetaData(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get metadata: %w", err)
-	}
-
-	return c.Asset.PrepareWithdrawSignInfo(ctx, metadataResp.Data, params)
-}
-
-func (c *Client) CreateCrossWithdrawAuto(ctx context.Context, params *asset.CreateCrossWithdrawAutoParams) (*asset.ResultCreateCrossWithdraw, error) {
-	metadataResp, err := c.GetMetaData(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get metadata: %w", err)
-	}
-
-	return c.Asset.CreateCrossWithdrawAuto(ctx, params, metadataResp.Data)
+// GetSpotDepositData retrieves unified-asset deposit data for chain-to-spot flows.
+func (c *Client) GetSpotDepositData(ctx context.Context, params unified_asset.CreateSpotDepositParams) (map[string]interface{}, error) {
+	return c.UnifiedAsset.GetSpotDepositData(ctx, params)
 }
 
 // GetMaxOrderSize gets the maximum order size for a given contract and price
@@ -789,6 +771,16 @@ func (c *Client) CreateTransferOut(ctx context.Context, params *transfer.CreateT
 // UpdateLeverageSetting updates the account leverage settings
 func (c *Client) UpdateLeverageSetting(ctx context.Context, contractID string, leverage string) error {
 	return c.Account.UpdateLeverageSetting(ctx, contractID, leverage)
+}
+
+// SetMarginMode updates the margin mode for a contract using trading-key EIP-712 signing.
+func (c *Client) SetMarginMode(ctx context.Context, params *account.SetMarginModeParams) (*account.SetMarginModeResponse, error) {
+	metadataResp, err := c.GetMetaData(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get metadata: %w", err)
+	}
+
+	return c.Account.SetMarginMode(ctx, params, metadataResp.Data)
 }
 
 // CreateMarketOrder creates a new market order with the given parameters

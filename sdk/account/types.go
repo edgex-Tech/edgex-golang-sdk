@@ -88,21 +88,56 @@ type GetAccountAssetResponse struct {
 
 // AccountAssetData contains account asset information
 type AccountAssetData struct {
-	PositionList   []Position   `json:"positionList"`
-	CollateralList []Collateral `json:"collateralList"`
+	Account                  *Account          `json:"account,omitempty"`
+	PositionList             []Position        `json:"positionList"`
+	CollateralList           []Collateral      `json:"collateralList"`
+	Version                  string            `json:"version,omitempty"`
+	PositionAssetList        []PositionAsset   `json:"positionAssetList,omitempty"`
+	CollateralAssetModelList []CollateralAsset `json:"collateralAssetModelList,omitempty"`
+	OraclePriceList          []IndexPrice      `json:"oraclePriceList,omitempty"`
+	MarkPriceList            []IndexPrice      `json:"markPriceList,omitempty"`
 }
 
 // Position represents a position
 type Position struct {
-	ContractID string `json:"contractId"`
-	Size       string `json:"size"`
-	Price      string `json:"price"`
+	UserID               string        `json:"userId,omitempty"`
+	AccountID            string        `json:"accountId,omitempty"`
+	CoinID               string        `json:"coinId,omitempty"`
+	ContractID           string        `json:"contractId"`
+	Size                 string        `json:"size,omitempty"`
+	Price                string        `json:"price,omitempty"`
+	OpenSize             string        `json:"openSize,omitempty"`
+	OpenValue            string        `json:"openValue,omitempty"`
+	OpenFee              string        `json:"openFee,omitempty"`
+	FundingFee           string        `json:"fundingFee,omitempty"`
+	LongTermCount        *int32        `json:"longTermCount,omitempty"`
+	LongTermStat         *PositionStat `json:"longTermStat,omitempty"`
+	LongTermCreatedTime  string        `json:"longTermCreatedTime,omitempty"`
+	LongTermUpdatedTime  string        `json:"longTermUpdatedTime,omitempty"`
+	ShortTermCount       *int32        `json:"shortTermCount,omitempty"`
+	ShortTermStat        *PositionStat `json:"shortTermStat,omitempty"`
+	ShortTermCreatedTime string        `json:"shortTermCreatedTime,omitempty"`
+	ShortTermUpdatedTime string        `json:"shortTermUpdatedTime,omitempty"`
+	LongTotalStat        *PositionStat `json:"longTotalStat,omitempty"`
+	ShortTotalStat       *PositionStat `json:"shortTotalStat,omitempty"`
+	CreatedTime          string        `json:"createdTime,omitempty"`
+	UpdatedTime          string        `json:"updatedTime,omitempty"`
+	MarginMode           string        `json:"marginMode,omitempty"`
+	IsolatedMargin       string        `json:"isolatedMargin,omitempty"`
+	AdjustedMargin       string        `json:"adjustedMargin,omitempty"`
+	IsLiquidating        *bool         `json:"isLiquidating,omitempty"`
 }
 
 // Collateral represents collateral information
 type Collateral struct {
-	CoinID string `json:"coinId"`
-	Amount string `json:"amount"`
+	CoinID               string `json:"coinId"`
+	Amount               string `json:"amount"`
+	CumDepositAmount     string `json:"cumDepositAmount,omitempty"`
+	CumWithdrawAmount    string `json:"cumWithdrawAmount,omitempty"`
+	CumTransferInAmount  string `json:"cumTransferInAmount,omitempty"`
+	CumTransferOutAmount string `json:"cumTransferOutAmount,omitempty"`
+	CreatedTime          string `json:"createdTime,omitempty"`
+	UpdatedTime          string `json:"updatedTime,omitempty"`
 }
 
 // ListPositionResponse represents the response for GetAccountPositions
@@ -189,13 +224,94 @@ type AccountResponse struct {
 
 // Account represents account information
 type Account struct {
-	ID              string `json:"id"`
-	UserID          string `json:"userId"`
-	EthAddress      string `json:"ethAddress"`
-	ExternalAddress string `json:"externalAddress,omitempty"`
-	AccountName     string `json:"accountName,omitempty"`
-	ClientAccountID string `json:"clientAccountId,omitempty"`
-	L2Key           string `json:"l2Key"`
+	ID                        string                  `json:"id"`
+	UserID                    string                  `json:"userId"`
+	EthAddress                string                  `json:"ethAddress"`
+	ExternalAddress           string                  `json:"externalAddress,omitempty"`
+	AccountName               string                  `json:"accountName,omitempty"`
+	ClientAccountID           string                  `json:"clientAccountId,omitempty"`
+	L2Key                     string                  `json:"l2Key,omitempty"`
+	IsSystemAccount           *bool                   `json:"isSystemAccount,omitempty"`
+	Signers                   []string                `json:"signers,omitempty"`
+	SignerPermissions         map[string]string       `json:"signerPermissions,omitempty"`
+	DefaultTradeSetting       *TradeSetting           `json:"defaultTradeSetting,omitempty"`
+	ContractIDToTradeSetting  map[string]TradeSetting `json:"contractIdToTradeSetting,omitempty"`
+	MaxLeverageLimit          string                  `json:"maxLeverageLimit,omitempty"`
+	CreateOrderPerMinuteLimit *int32                  `json:"createOrderPerMinuteLimit,omitempty"`
+	CreateOrderDelayMillis    *int32                  `json:"createOrderDelayMillis,omitempty"`
+	ExtraType                 string                  `json:"extraType,omitempty"`
+	ExtraDataJson             string                  `json:"extraDataJson,omitempty"`
+	Status                    string                  `json:"status,omitempty"`
+	IsLiquidating             *bool                   `json:"isLiquidating,omitempty"`
+	ContractIDToMarginMode    map[string]string       `json:"contractIdToMarginMode,omitempty"`
+	CreatedTime               string                  `json:"createdTime,omitempty"`
+	UpdatedTime               string                  `json:"updatedTime,omitempty"`
+}
+
+// TradeSetting represents leverage and trading preferences.
+type TradeSetting struct {
+	ContractID   string `json:"contractId,omitempty"`
+	Leverage     string `json:"leverage,omitempty"`
+	MaxLeverage  string `json:"maxLeverage,omitempty"`
+	MarginMode   string `json:"marginMode,omitempty"`
+	PositionMode string `json:"positionMode,omitempty"`
+	CreatedTime  string `json:"createdTime,omitempty"`
+	UpdatedTime  string `json:"updatedTime,omitempty"`
+}
+
+// PositionStat represents cumulative position statistics.
+type PositionStat struct {
+	CumOpenSize       string `json:"cumOpenSize,omitempty"`
+	CumOpenValue      string `json:"cumOpenValue,omitempty"`
+	CumOpenFee        string `json:"cumOpenFee,omitempty"`
+	CumCloseSize      string `json:"cumCloseSize,omitempty"`
+	CumCloseValue     string `json:"cumCloseValue,omitempty"`
+	CumCloseFee       string `json:"cumCloseFee,omitempty"`
+	CumFundingFee     string `json:"cumFundingFee,omitempty"`
+	CumLiquidateFee   string `json:"cumLiquidateFee,omitempty"`
+	CumRealizePnl     string `json:"cumRealizePnl,omitempty"`
+	CumDeleverageSize string `json:"cumDeleverageSize,omitempty"`
+}
+
+// PositionAsset represents position-level asset information.
+type PositionAsset struct {
+	CoinID                string `json:"coinId,omitempty"`
+	ContractID            string `json:"contractId,omitempty"`
+	PositionValue         string `json:"positionValue,omitempty"`
+	OpenOrderValue        string `json:"openOrderValue,omitempty"`
+	NotionalValue         string `json:"notionalValue,omitempty"`
+	InitialMargin         string `json:"initialMargin,omitempty"`
+	MaintenanceMargin     string `json:"maintenanceMargin,omitempty"`
+	UnrealizedPnl         string `json:"unrealizedPnl,omitempty"`
+	RealizedPnl           string `json:"realizedPnl,omitempty"`
+	LiquidationPrice      string `json:"liquidationPrice,omitempty"`
+	BankruptcyPrice       string `json:"bankruptcyPrice,omitempty"`
+	MaxWithdrawableAmount string `json:"maxWithdrawableAmount,omitempty"`
+}
+
+// CollateralAsset represents account-level asset information.
+type CollateralAsset struct {
+	CoinID                string `json:"coinId,omitempty"`
+	TotalEquity           string `json:"totalEquity,omitempty"`
+	WalletBalance         string `json:"walletBalance,omitempty"`
+	AvailableBalance      string `json:"availableBalance,omitempty"`
+	InitialMargin         string `json:"initialMargin,omitempty"`
+	MaintenanceMargin     string `json:"maintenanceMargin,omitempty"`
+	OrderMargin           string `json:"orderMargin,omitempty"`
+	PositionMargin        string `json:"positionMargin,omitempty"`
+	UnrealizedPnl         string `json:"unrealizedPnl,omitempty"`
+	CrossedUnrealizedPnl  string `json:"crossedUnrealizedPnl,omitempty"`
+	IsolatedUnrealizedPnl string `json:"isolatedUnrealizedPnl,omitempty"`
+	MaxWithdrawableAmount string `json:"maxWithdrawableAmount,omitempty"`
+}
+
+// IndexPrice represents oracle or mark price information.
+type IndexPrice struct {
+	ContractID           string `json:"contractId,omitempty"`
+	PriceType            string `json:"priceType,omitempty"`
+	PriceValue           string `json:"priceValue,omitempty"`
+	CreatedTime          string `json:"createdTime,omitempty"`
+	OraclePriceSignature string `json:"oraclePriceSignature,omitempty"`
 }
 
 // GetAccountAssetSnapshotPageParams represents the parameters for GetAccountAssetSnapshotPage
@@ -242,6 +358,21 @@ type GetAccountDeleverageLightResponse struct {
 
 // UpdateLeverageSettingResponse represents the response for UpdateLeverageSetting
 type UpdateLeverageSettingResponse struct {
+	Code       string                 `json:"code"`
+	Data       map[string]interface{} `json:"data"`
+	ErrorParam interface{}            `json:"errorParam"`
+	ErrorMsg   string                 `json:"msg"`
+}
+
+// SetMarginModeParams represents the parameters for SetMarginMode.
+type SetMarginModeParams struct {
+	ContractID    string
+	MarginMode    string
+	ClientOrderID string
+}
+
+// SetMarginModeResponse represents the response for SetMarginMode.
+type SetMarginModeResponse struct {
 	Code       string                 `json:"code"`
 	Data       map[string]interface{} `json:"data"`
 	ErrorParam interface{}            `json:"errorParam"`

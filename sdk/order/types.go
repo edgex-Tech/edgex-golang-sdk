@@ -67,10 +67,10 @@ type CreateOrder struct {
 
 // GetMaxCreateOrderSize represents max order size information
 type GetMaxCreateOrderSize struct {
-	MaxBuySize *string `json:"maxBuySize,omitempty"`
+	MaxBuySize  *string `json:"maxBuySize,omitempty"`
 	MaxSellSize *string `json:"maxSellSize,omitempty"`
-	Ask1Price *string `json:"ask1Price,omitempty"`
-	Bid1Price *string `json:"bid1Price,omitempty"`
+	Ask1Price   *string `json:"ask1Price,omitempty"`
+	Bid1Price   *string `json:"bid1Price,omitempty"`
 }
 
 // OrderFillTransaction represents an order fill transaction
@@ -233,21 +233,21 @@ type CreateOrderParams struct {
 	ClientOrderId *string   `json:"clientOrderId"`
 	TimeInForce   string    `json:"timeInForce,omitempty"`
 	ReduceOnly    bool      `json:"reduceOnly,omitempty"`
-	
+
 	// Conditional order fields (for STOP_LIMIT, STOP_MARKET, TAKE_PROFIT_LIMIT, TAKE_PROFIT_MARKET)
 	TriggerPrice     string `json:"triggerPrice,omitempty"`     // Trigger price for conditional orders
 	TriggerPriceType string `json:"triggerPriceType,omitempty"` // Price type: LAST_PRICE, MARK_PRICE
-	
+
 	// Position TP/SL fields
-	IsPositionTpsl       bool       `json:"isPositionTpsl,omitempty"`       // Whether this is a position TP/SL order
-	OpenTpslParentOrderId string    `json:"openTpslParentOrderId,omitempty"` // Parent order ID for open TP/SL
-	
+	IsPositionTpsl        bool   `json:"isPositionTpsl,omitempty"`        // Whether this is a position TP/SL order
+	OpenTpslParentOrderId string `json:"openTpslParentOrderId,omitempty"` // Parent order ID for open TP/SL
+
 	// Open TP/SL on new orders
-	IsSetOpenTp bool       `json:"isSetOpenTp,omitempty"` // Whether to set take profit on order creation
-	OpenTp      *OpenTpSl  `json:"openTp,omitempty"`      // Take profit parameters
-	IsSetOpenSl bool       `json:"isSetOpenSl,omitempty"` // Whether to set stop loss on order creation
-	OpenSl      *OpenTpSl  `json:"openSl,omitempty"`      // Stop loss parameters
-	
+	IsSetOpenTp bool      `json:"isSetOpenTp,omitempty"` // Whether to set take profit on order creation
+	OpenTp      *OpenTpSl `json:"openTp,omitempty"`      // Take profit parameters
+	IsSetOpenSl bool      `json:"isSetOpenSl,omitempty"` // Whether to set stop loss on order creation
+	OpenSl      *OpenTpSl `json:"openSl,omitempty"`      // Stop loss parameters
+
 	// Additional fields
 	SourceKey     string `json:"sourceKey,omitempty"`     // Source key (UUID)
 	ExtraType     string `json:"extraType,omitempty"`     // Extra type for business use

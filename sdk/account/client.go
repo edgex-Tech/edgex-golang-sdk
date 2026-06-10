@@ -7,8 +7,12 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
+	"github.com/edgex-Tech/edgex-golang-sdk/sdk/metadata"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // Client represents the account client
@@ -19,7 +23,15 @@ type Client struct {
 type clientInterface interface {
 	GetAccountID() int64
 	GetBaseURL() string
+	ResolveSignerAddress() (string, error)
+	SignTypedDataWithSignerKey(typedData internal.TypedData) (string, error)
 	HttpRequest(urlStr string, method string, data map[string]interface{}, params map[string]string) (*http.Response, error)
+}
+
+func calcSetMarginModeL2ExpireTime(now time.Time) string {
+	nowMillis := now.UnixMilli()
+	nextHourMillis := ((nowMillis + 3600000 - 1) / 3600000) * 3600000
+	return strconv.FormatInt(nextHourMillis+14*24*60*60*1000, 10)
 }
 
 // NewClient creates a new account client
@@ -527,6 +539,119 @@ func (c *Client) UpdateLeverageSetting(ctx context.Context, contractID string, l
 	return nil
 }
 
+// SetMarginMode signs the margin-mode update with the trading key and submits the v2 request.
+func (c *Client) SetMarginMode(ctx context.Context, params *SetMarginModeParams, md *metadata.MetaData) (*SetMarginModeResponse, error) {
+	if params == nil {
+		return nil, fmt.Errorf("params is nil")
+	}
+	if md == nil || md.Global == nil {
+		return nil, fmt.Errorf("metadata.global is required")
+	}
+
+	chainID := strings.TrimSpace(md.Global.NativeChainId)
+	if chainID == "" {
+		chainID = strings.TrimSpace(md.Global.ChainId)
+	}
+	if chainID == "" {
+		return nil, fmt.Errorf("metadata.global.nativeChainId/chainId is required")
+	}
+	verifyingContract := strings.TrimSpace(md.Global.ContractAddress)
+	if verifyingContract == "" {
+		return nil, fmt.Errorf("metadata.global.contractAddress is required")
+	}
+
+	clientOrderID := strings.TrimSpace(params.ClientOrderID)
+	if clientOrderID == "" {
+		clientOrderID = internal.GetRandomClientId()
+	}
+	l2Nonce := internal.CalcNonce(clientOrderID)
+	l2ExpireTime := calcSetMarginModeL2ExpireTime(time.Now())
+
+	marginMode := strings.TrimSpace(params.MarginMode)
+	marginModeUint, err := strconv.ParseUint(marginMode, 10, 8)
+	if err != nil {
+		return nil, fmt.Errorf("invalid marginMode: %w", err)
+	}
+
+	tradingSigner, err := c.c.ResolveSignerAddress()
+	if err != nil {
+		return nil, fmt.Errorf("trading private key is required for v2 EIP-712 margin mode signing: %w", err)
+	}
+	if !common.IsHexAddress(tradingSigner) {
+		return nil, fmt.Errorf("invalid signer address: %s", tradingSigner)
+	}
+	tradingSigner = common.HexToAddress(tradingSigner).Hex()
+
+	domain, err := internal.NewTypedDataDomain("EdgeX", "1", chainID, verifyingContract)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build EIP-712 domain: %w", err)
+	}
+
+	typedData := internal.TypedData{
+		Types: internal.TypedDataTypes{
+			"EIP712Domain": {
+				{Name: "name", Type: "string"},
+				{Name: "version", Type: "string"},
+				{Name: "chainId", Type: "uint256"},
+				{Name: "verifyingContract", Type: "address"},
+			},
+			"SetMarginPreferenceParams": {
+				{Name: "accountId", Type: "uint64"},
+				{Name: "assetId", Type: "uint64"},
+				{Name: "marginMode", Type: "uint8"},
+				{Name: "nonce", Type: "uint256"},
+				{Name: "signer", Type: "address"},
+			},
+		},
+		PrimaryType: "SetMarginPreferenceParams",
+		Domain:      domain,
+		Message: internal.TypedDataMessage{
+			"accountId":  strconv.FormatInt(c.c.GetAccountID(), 10),
+			"assetId":    strings.TrimSpace(params.ContractID),
+			"marginMode": strconv.FormatUint(marginModeUint, 10),
+			"nonce":      strconv.FormatInt(l2Nonce, 10),
+			"signer":     tradingSigner,
+		},
+	}
+
+	l2Signature, err := c.c.SignTypedDataWithSignerKey(typedData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign margin mode payload: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/api/v2/private/account/setMarginMode", c.c.GetBaseURL())
+	data := map[string]interface{}{
+		"accountId":    strconv.FormatInt(c.c.GetAccountID(), 10),
+		"contractId":   strings.TrimSpace(params.ContractID),
+		"marginMode":   marginMode,
+		"l2Nonce":      strconv.FormatInt(l2Nonce, 10),
+		"l2ExpireTime": l2ExpireTime,
+		"signer":       tradingSigner,
+		"l2Signature":  l2Signature,
+	}
+
+	resp, err := c.c.HttpRequest(url, "POST", data, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set margin mode: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var result SetMarginModeResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
+}
+
 // GetAccountPage gets paginated account list (mainly used in v2).
 func (c *Client) GetAccountPage(ctx context.Context, params GetAccountPageParams) (*PageDataAccountResponse, error) {
 	url := fmt.Sprintf("%s/api/v2/private/account/getAccountPage", c.c.GetBaseURL())
@@ -563,4 +688,3 @@ func (c *Client) GetAccountPage(ctx context.Context, params GetAccountPageParams
 
 	return &result, nil
 }
-

@@ -31,3 +31,13 @@ func TestNewClient_UsesProvidedMetadataCacheTTL(t *testing.T) {
 	require.NotNil(t, client.metadataCacheTTL)
 	assert.Equal(t, customTTL, *client.metadataCacheTTL)
 }
+
+func TestNewClient_InitializesUnifiedAssetNamespace(t *testing.T) {
+	client, err := NewClient(&ClientConfig{
+		BaseURL:   "https://example.com",
+		AccountID: 1,
+	})
+	require.NoError(t, err)
+
+	require.NotNil(t, client.UnifiedAsset)
+}

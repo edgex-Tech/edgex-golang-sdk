@@ -62,12 +62,14 @@ func TestGetKLine(t *testing.T) {
 	params := quote.GetKLineParams{
 		ContractID: contractID,
 		Interval:   quote.KlineType1Hour,
-		Size:       100,
+		Size:       1,
 		PriceType:  quote.PriceTypeLastPrice,
 	}
+	paramsJSON, _ := json.MarshalIndent(params, "", "  ")
+	t.Logf("GetKLine params: %s", string(paramsJSON))
 	resp, err := client.GetKLine(ctx, params)
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
-	t.Logf("K-Line Data: %s", string(jsonData))
+	t.Logf("GetKLine response: %s", string(jsonData))
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, "SUCCESS", resp.Code)
@@ -123,12 +125,14 @@ func TestGetMultiContractKLine(t *testing.T) {
 	params := quote.GetMultiContractKLineParams{
 		ContractIDs: []string{contractID},
 		Interval:    quote.KlineType1Hour,
-		Size:        100,
+		Size:        1,
 		PriceType:   quote.PriceTypeLastPrice,
 	}
+	paramsJSON, _ := json.MarshalIndent(params, "", "  ")
+	t.Logf("GetMultiContractKLine params: %s", string(paramsJSON))
 	resp, err := client.GetMultiContractKLine(ctx, params)
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
-	t.Logf("Multi-Contract K-Line Data: %s", string(jsonData))
+	t.Logf("GetMultiContractKLine response: %s", string(jsonData))
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, "SUCCESS", resp.Code)

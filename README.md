@@ -7,7 +7,7 @@ Official Golang SDK for EdgeX V2 API - A high-performance, production-ready SDK 
 
 ## 🚀 Features
 
-- ✅ **Current Code-Based V2 Coverage** - 39 HTTP endpoints + 2 WebSocket paths
+- ✅ **Current Code-Based V2 Coverage** - account/order/transfer plus unified-asset and CCTP helpers
 - 🔐 **EIP-712 Signature** - Ethereum-compatible L2 operation signing
 - 🔑 **HMAC-SHA256 Authentication** - Secure HTTP request authentication
 - 📡 **Real-time WebSocket** - Public market data + Private account updates
@@ -22,6 +22,12 @@ go get github.com/edgex-Tech/edgex-golang-sdk@main-v2
 ```
 
 **Requirements:** Go 1.22 or higher
+
+Recommended for macOS 26 developers:
+
+- Prefer Go 1.24 or newer when running tests locally on macOS 26.
+- With Go 1.22.7 on macOS 26, some test binaries may fail at startup with:
+  - `dyld: missing LC_UUID load command`
 
 ## 📌 Documentation Status
 
@@ -43,6 +49,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/edgex-Tech/edgex-golang-sdk/sdk/account"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk"
 	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
 )
@@ -68,6 +75,15 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("Account Asset: %+v\n", accountAsset)
+
+	marginModeResp, err := client.SetMarginMode(ctx, &account.SetMarginModeParams{
+		ContractID: "1001",
+		MarginMode: "ISOLATED",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Margin Mode Updated: %+v\n", marginModeResp)
 
 	orderResp, err := client.CreateOrder(ctx, &order.CreateOrderParams{
 		ContractId: "1001",
@@ -137,8 +153,8 @@ Module breakdown:
 | Metadata | 2 | `GetServerTime`, `GetMetaData` |
 | Quote | 5 | Includes `GetMultiContractKLine` |
 | Funding | 2 | Accessed via `client.Funding` |
-| Account | 14 | Includes `GetPositionOrders`, `UpdateLeverageSetting` |
-| Asset | 5 | Includes withdraw query/create helpers exposed by the root client |
+| Account | 15 | Includes `GetPositionOrders`, `UpdateLeverageSetting`, `SetMarginMode` |
+| UnifiedAsset | 4 | Unified withdraw, deposit-data, and asset-flow helpers |
 | Order | 7 | Root client exposes 7 order operations |
 | Transfer | 4 | Includes `CreateTransferOut` |
 | WebSocket | 2 | Still `/api/v1/.../ws` |
@@ -231,6 +247,15 @@ go test ./... -cover
 
 # Run only unit tests (skip integration tests)
 go test ./... -short
+```
+
+macOS 26 note:
+
+```bash
+# If Go 1.22.x test binaries fail with:
+# dyld: missing LC_UUID load command
+go test -ldflags=-linkmode=external ./sdk/...
+go test -ldflags=-linkmode=external ./...
 ```
 
 ### Test Scenarios

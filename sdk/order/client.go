@@ -166,7 +166,7 @@ func (c *Client) createOrderV2(ctx context.Context, params *CreateOrderParams, m
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse size: %w", err)
 	}
-	
+
 	// For conditional orders (STOP_MARKET, TAKE_PROFIT_MARKET) with triggerPrice,
 	// use trigger price for l2Value calculation when price is 0
 	if l2Price.IsZero() && params.TriggerPrice != "" {
@@ -175,7 +175,7 @@ func (c *Client) createOrderV2(ctx context.Context, params *CreateOrderParams, m
 			l2Price = triggerPriceDec
 		}
 	}
-	
+
 	l2Value := l2Price.Mul(size)
 
 	feeRate, err := parseMaxFeeRate(contract)
@@ -391,6 +391,13 @@ func (c *Client) postCreateOrder(ctx context.Context, body map[string]interface{
 	return &result, nil
 }
 
+func joinOptionalBoolFilter(value *bool) string {
+	if value == nil {
+		return ""
+	}
+	return strconv.FormatBool(*value)
+}
+
 // CancelOrder cancels a specific order
 func (c *Client) CancelOrder(ctx context.Context, params *CancelOrderParams) (interface{}, error) {
 	var url string
@@ -469,14 +476,14 @@ func (c *Client) GetActiveOrders(ctx context.Context, params *GetActiveOrderPara
 	if len(params.FilterStatusList) > 0 {
 		queryParams["filterStatusList"] = strings.Join(params.FilterStatusList, ",")
 	}
-	if params.FilterIsLiquidate != nil {
-		queryParams["filterIsLiquidate"] = strconv.FormatBool(*params.FilterIsLiquidate)
+	if value := joinOptionalBoolFilter(params.FilterIsLiquidate); value != "" {
+		queryParams["filterIsLiquidateList"] = value
 	}
-	if params.FilterIsDeleverage != nil {
-		queryParams["filterIsDeleverage"] = strconv.FormatBool(*params.FilterIsDeleverage)
+	if value := joinOptionalBoolFilter(params.FilterIsDeleverage); value != "" {
+		queryParams["filterIsDeleverageList"] = value
 	}
-	if params.FilterIsPositionTpsl != nil {
-		queryParams["filterIsPositionTpsl"] = strconv.FormatBool(*params.FilterIsPositionTpsl)
+	if value := joinOptionalBoolFilter(params.FilterIsPositionTpsl); value != "" {
+		queryParams["filterIsPositionTpslList"] = value
 	}
 	if params.FilterStartCreatedTimeInclusive > 0 {
 		queryParams["filterStartCreatedTimeInclusive"] = strconv.FormatUint(params.FilterStartCreatedTimeInclusive, 10)
@@ -531,14 +538,14 @@ func (c *Client) GetOrderFillTransactions(ctx context.Context, params *OrderFill
 	if len(params.FilterOrderIdList) > 0 {
 		queryParams["filterOrderIdList"] = strings.Join(params.FilterOrderIdList, ",")
 	}
-	if params.FilterIsLiquidate != nil {
-		queryParams["filterIsLiquidate"] = strconv.FormatBool(*params.FilterIsLiquidate)
+	if value := joinOptionalBoolFilter(params.FilterIsLiquidate); value != "" {
+		queryParams["filterIsLiquidateList"] = value
 	}
-	if params.FilterIsDeleverage != nil {
-		queryParams["filterIsDeleverage"] = strconv.FormatBool(*params.FilterIsDeleverage)
+	if value := joinOptionalBoolFilter(params.FilterIsDeleverage); value != "" {
+		queryParams["filterIsDeleverageList"] = value
 	}
-	if params.FilterIsPositionTpsl != nil {
-		queryParams["filterIsPositionTpsl"] = strconv.FormatBool(*params.FilterIsPositionTpsl)
+	if value := joinOptionalBoolFilter(params.FilterIsPositionTpsl); value != "" {
+		queryParams["filterIsPositionTpslList"] = value
 	}
 	if params.FilterStartCreatedTimeInclusive > 0 {
 		queryParams["filterStartCreatedTimeInclusive"] = strconv.FormatUint(params.FilterStartCreatedTimeInclusive, 10)
