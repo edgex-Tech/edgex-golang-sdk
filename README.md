@@ -2,6 +2,10 @@
 
 A Go SDK for interacting with the edgeX Exchange API.
 
+## Deprecation Notice
+
+This `v1` branch contains the legacy EdgeX V1 SDK and is deprecated. New integrations should use the `main` branch for the current EdgeX V2 SDK.
+
 ## Installation
 
 ```bash
