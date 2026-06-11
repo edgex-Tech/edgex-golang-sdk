@@ -41,3 +41,15 @@ func TestNewClient_InitializesUnifiedAssetNamespace(t *testing.T) {
 
 	require.NotNil(t, client.UnifiedAsset)
 }
+
+func TestNewClient_UsesAssetBaseURL(t *testing.T) {
+	client, err := NewClient(&ClientConfig{
+		BaseURL:      "https://edgex-prod-v2.edgex.exchange/api/",
+		AssetBaseURL: "https://spot.edgex.exchange/api/",
+		AccountID:    1,
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://edgex-prod-v2.edgex.exchange", client.GetBaseURL())
+	assert.Equal(t, "https://spot.edgex.exchange", client.GetAssetBaseURL())
+}

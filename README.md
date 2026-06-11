@@ -57,6 +57,7 @@ import (
 func main() {
 	client, err := sdk.NewClient(&sdk.ClientConfig{
 		BaseURL:       "https://edgex-prod-v2.edgex.exchange",
+		AssetBaseURL: "https://spot.edgex.exchange",
 		AccountID:     12345,
 		APIKey:        "your-api-key",
 		APISecret:     "your-api-secret",
@@ -106,6 +107,7 @@ func main() {
 ```go
 type ClientConfig struct {
     BaseURL          string
+    AssetBaseURL     string // Optional unified-asset base URL, defaults to BaseURL
     AccountID        int64
     SignerPriKey     string // EIP-712 signer private key for orders
     WalletPriKey     string // EIP-712 wallet private key for withdraw / transfer
@@ -208,6 +210,7 @@ This SDK only supports **V2 API with HMAC authentication**.
 ```bash
 # Required: API Configuration
 export EDGEX_BASE_URL="https://edgex-prod-v2.edgex.exchange"
+export EDGEX_ASSET_BASE_URL="https://spot.edgex.exchange"
 export EDGEX_ACCOUNT_ID=12345
 
 # Required: HMAC Authentication

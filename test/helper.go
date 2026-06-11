@@ -44,6 +44,7 @@ func CreateTestClient() (*sdk.Client, error) {
 
 	return sdk.NewClient(&sdk.ClientConfig{
 		BaseURL:          baseURL,
+		AssetBaseURL:     strings.TrimSpace(os.Getenv("EDGEX_ASSET_BASE_URL")),
 		AccountID:        accountID,
 		APIKey:           strings.TrimSpace(os.Getenv("EDGEX_API_KEY")),
 		APIPassphrase:    strings.TrimSpace(os.Getenv("EDGEX_API_PASSPHRASE")),

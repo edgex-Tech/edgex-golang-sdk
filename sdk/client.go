@@ -35,6 +35,7 @@ type Client struct {
 	// HTTP client
 	httpClient *http.Client
 	baseURL    string
+	assetURL   string
 	accountID  int64
 
 	// EIP-712 keys
@@ -70,6 +71,7 @@ type Client struct {
 // ClientConfig holds the configuration for creating a new Client
 type ClientConfig struct {
 	BaseURL          string
+	AssetBaseURL     string // Optional base URL for /api/v1/private/unified-asset, defaults to BaseURL
 	AccountID        int64
 	SignerPriKey     string // EIP-712 private key for order signing
 	WalletPriKey     string // EIP-712 private key for withdrawal signing
@@ -104,6 +106,7 @@ func NewClient(cfg *ClientConfig) (*Client, error) {
 	client := &Client{
 		httpClient:       &http.Client{Timeout: 30 * time.Second},
 		baseURL:          normalizeBaseURL(cfg.BaseURL),
+		assetURL:         normalizeAssetBaseURL(cfg.AssetBaseURL, cfg.BaseURL),
 		accountID:        cfg.AccountID,
 		signerPriKey:     strings.TrimPrefix(cfg.SignerPriKey, "0x"),
 		walletPriKey:     strings.TrimPrefix(cfg.WalletPriKey, "0x"),
@@ -139,6 +142,14 @@ func normalizeBaseURL(baseURL string) string {
 	return baseURL
 }
 
+func normalizeAssetBaseURL(assetBaseURL string, fallbackBaseURL string) string {
+	assetBaseURL = strings.TrimSpace(assetBaseURL)
+	if assetBaseURL == "" {
+		return normalizeBaseURL(fallbackBaseURL)
+	}
+	return normalizeBaseURL(assetBaseURL)
+}
+
 // GetAccountID returns the account ID
 func (c *Client) GetAccountID() int64 {
 	return c.accountID
@@ -167,6 +178,11 @@ func (c *Client) GetWalletAddr() string {
 // GetBaseURL returns the base URL
 func (c *Client) GetBaseURL() string {
 	return c.baseURL
+}
+
+// GetAssetBaseURL returns the base URL for unified-asset API calls.
+func (c *Client) GetAssetBaseURL() string {
+	return c.assetURL
 }
 
 // GetAuthHeaderKey returns the configured auth header key prefix

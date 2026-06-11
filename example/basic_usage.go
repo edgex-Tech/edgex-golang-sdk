@@ -58,6 +58,7 @@ func main() {
 	// Create a new client
 	client, err := sdk.NewClient(&sdk.ClientConfig{
 		BaseURL:          baseURL,
+		AssetBaseURL:     os.Getenv("EDGEX_ASSET_BASE_URL"),
 		AccountID:        accountID,
 		APIKey:           apiKey,
 		APIPassphrase:    apiPassphrase,

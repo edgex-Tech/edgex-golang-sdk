@@ -69,7 +69,7 @@ var (
 
 type clientInterface interface {
 	GetAccountID() int64
-	GetBaseURL() string
+	GetAssetBaseURL() string
 	ResolveWalletAddress() (string, error)
 	SignTypedDataWithWalletKey(typedData internal.TypedData) (string, error)
 	HttpRequest(urlStr string, method string, data map[string]interface{}, params map[string]string) (*http.Response, error)
@@ -342,7 +342,7 @@ func buildTypedDataFromServerResponse(data map[string]interface{}) (internal.Typ
 
 func (c *Client) request(ctx context.Context, method, path string, data map[string]interface{}, params map[string]string) (map[string]interface{}, error) {
 	_ = ctx
-	resp, err := c.c.HttpRequest(c.c.GetBaseURL()+path, method, data, params)
+	resp, err := c.c.HttpRequest(c.c.GetAssetBaseURL()+path, method, data, params)
 	if err != nil {
 		return nil, err
 	}

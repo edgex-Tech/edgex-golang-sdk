@@ -39,6 +39,10 @@ func (m *mockClient) GetBaseURL() string {
 	return m.baseURL
 }
 
+func (m *mockClient) GetAssetBaseURL() string {
+	return m.baseURL
+}
+
 func (m *mockClient) ResolveWalletAddress() (string, error) {
 	if m.walletAddr != "" {
 		return m.walletAddr, nil
