@@ -156,6 +156,18 @@ func TestBuildTypedDataFromServerResponseNormalizesFields(t *testing.T) {
 	assert.Equal(t, "0x0000000000000000000000000000000000000001", typedData.Domain.VerifyingContract)
 }
 
+func TestApplyFeeToAttemptSupportsBigIntegerAmounts(t *testing.T) {
+	attempt := map[string]interface{}{
+		"amount": "9223372036854775808",
+		"fee":    "0",
+	}
+
+	err := applyFeeToAttempt(attempt, "10")
+	require.NoError(t, err)
+	assert.Equal(t, "10", attempt["fee"])
+	assert.Equal(t, "9223372036854775798", attempt["amount"])
+}
+
 func TestGetSpotDepositDataUsesUnifiedAssetPath(t *testing.T) {
 	var gotPath string
 
