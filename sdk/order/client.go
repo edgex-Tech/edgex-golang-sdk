@@ -515,6 +515,73 @@ func (c *Client) GetActiveOrders(ctx context.Context, params *GetActiveOrderPara
 	return &result, nil
 }
 
+// GetHistoryOrderPage gets historical orders with pagination and filters.
+func (c *Client) GetHistoryOrderPage(ctx context.Context, params *GetHistoryOrderParams) (*ResultPageDataOrder, error) {
+	url := fmt.Sprintf("%s/api/v2/private/order/getHistoryOrderPage", c.c.GetBaseURL())
+	queryParams := map[string]string{
+		"accountId": strconv.FormatInt(c.c.GetAccountID(), 10),
+	}
+
+	if params != nil {
+		if params.Size != "" {
+			queryParams["size"] = params.Size
+		}
+		if params.OffsetData != "" {
+			queryParams["offsetData"] = params.OffsetData
+		}
+
+		if len(params.FilterCoinIdList) > 0 {
+			queryParams["filterCoinIdList"] = strings.Join(params.FilterCoinIdList, ",")
+		}
+		if len(params.FilterContractIdList) > 0 {
+			queryParams["filterContractIdList"] = strings.Join(params.FilterContractIdList, ",")
+		}
+		if len(params.FilterTypeList) > 0 {
+			queryParams["filterTypeList"] = strings.Join(params.FilterTypeList, ",")
+		}
+		if len(params.FilterStatusList) > 0 {
+			queryParams["filterStatusList"] = strings.Join(params.FilterStatusList, ",")
+		}
+		if value := joinOptionalBoolFilter(params.FilterIsLiquidate); value != "" {
+			queryParams["filterIsLiquidateList"] = value
+		}
+		if value := joinOptionalBoolFilter(params.FilterIsDeleverage); value != "" {
+			queryParams["filterIsDeleverageList"] = value
+		}
+		if value := joinOptionalBoolFilter(params.FilterIsPositionTpsl); value != "" {
+			queryParams["filterIsPositionTpslList"] = value
+		}
+		if params.FilterStartCreatedTimeInclusive > 0 {
+			queryParams["filterStartCreatedTimeInclusive"] = strconv.FormatUint(params.FilterStartCreatedTimeInclusive, 10)
+		}
+		if params.FilterEndCreatedTimeExclusive > 0 {
+			queryParams["filterEndCreatedTimeExclusive"] = strconv.FormatUint(params.FilterEndCreatedTimeExclusive, 10)
+		}
+	}
+
+	resp, err := c.c.HttpRequest(url, "GET", nil, queryParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get history orders: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var result ResultPageDataOrder
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
+}
+
 // GetOrderFillTransactions gets order fill transactions with pagination and filters
 func (c *Client) GetOrderFillTransactions(ctx context.Context, params *OrderFillTransactionParams) (*ResultPageDataOrderFillTransaction, error) {
 	url := fmt.Sprintf("%s/api/v2/private/order/getHistoryOrderFillTransactionPage", c.c.GetBaseURL())

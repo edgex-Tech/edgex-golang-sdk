@@ -87,34 +87,58 @@ func TestGetOrderFillTransactionsUsesListBooleanFilters(t *testing.T) {
 }
 
 func TestGetHistoryOrderPageUsesListBooleanFilters(t *testing.T) {
-	var gotBody map[string]interface{}
+	var gotPath string
+	var gotMethod string
+	var gotParams map[string]string
 
 	mockCli := newMockClient(42, "", "https://example.com", func(urlStr, method string, data map[string]interface{}, params map[string]string) (*http.Response, error) {
-		gotBody = data
+		gotMethod = method
+		gotParams = params
+		req, _ := http.NewRequest(method, urlStr, nil)
+		gotPath = req.URL.Path
 		return &http.Response{
 			StatusCode: http.StatusOK,
-			Body:       io.NopCloser(strings.NewReader(`{"code":"SUCCESS","data":{"dataList":[],"hasNext":false,"offsetData":""}}`)),
+			Body:       io.NopCloser(strings.NewReader(`{"code":"SUCCESS","data":{"dataList":[],"nextPageOffsetData":""}}`)),
 			Header:     make(http.Header),
 		}, nil
 	})
 
 	client := NewClient(mockCli)
-	_, err := client.GetHistoryOrderPage(context.Background(), &GetHistoryOrderPageParams{
-		Size:                 10,
-		FilterIsLiquidate:    boolPtr(true),
-		FilterIsDeleverage:   boolPtr(false),
-		FilterIsPositionTpsl: boolPtr(true),
-		FilterOrderIdList:    []string{"1"},
+	_, err := client.GetHistoryOrderPage(context.Background(), &GetHistoryOrderParams{
+		PaginationParams: PaginationParams{
+			Size:       "10",
+			OffsetData: "offset-1",
+		},
+		OrderFilterParams: OrderFilterParams{
+			FilterCoinIdList:     []string{"1000"},
+			FilterContractIdList: []string{"10000001"},
+			FilterTypeList:       []string{"LIMIT"},
+			FilterStatusList:     []string{"FILLED"},
+			FilterIsLiquidate:    boolPtr(true),
+			FilterIsDeleverage:   boolPtr(false),
+			FilterIsPositionTpsl: boolPtr(true),
+		},
+		FilterStartCreatedTimeInclusive: 100,
+		FilterEndCreatedTimeExclusive:   200,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, []bool{true}, gotBody["filterIsLiquidateList"])
-	assert.Equal(t, []bool{false}, gotBody["filterIsDeleverageList"])
-	assert.Equal(t, []bool{true}, gotBody["filterIsPositionTpslList"])
-	assert.Equal(t, []string{"1"}, gotBody["filterOrderIdList"])
-	assert.NotContains(t, gotBody, "filterIsLiquidate")
-	assert.NotContains(t, gotBody, "filterIsDeleverage")
-	assert.NotContains(t, gotBody, "filterIsPositionTpsl")
-	assert.NotContains(t, gotBody, "filterClientOrderIdList")
+	assert.Equal(t, "GET", gotMethod)
+	assert.Equal(t, "/api/v2/private/order/getHistoryOrderPage", gotPath)
+	assert.Equal(t, "42", gotParams["accountId"])
+	assert.Equal(t, "10", gotParams["size"])
+	assert.Equal(t, "offset-1", gotParams["offsetData"])
+	assert.Equal(t, "1000", gotParams["filterCoinIdList"])
+	assert.Equal(t, "10000001", gotParams["filterContractIdList"])
+	assert.Equal(t, "LIMIT", gotParams["filterTypeList"])
+	assert.Equal(t, "FILLED", gotParams["filterStatusList"])
+	assert.Equal(t, "true", gotParams["filterIsLiquidateList"])
+	assert.Equal(t, "false", gotParams["filterIsDeleverageList"])
+	assert.Equal(t, "true", gotParams["filterIsPositionTpslList"])
+	assert.Equal(t, "100", gotParams["filterStartCreatedTimeInclusive"])
+	assert.Equal(t, "200", gotParams["filterEndCreatedTimeExclusive"])
+	assert.NotContains(t, gotParams, "filterIsLiquidate")
+	assert.NotContains(t, gotParams, "filterIsDeleverage")
+	assert.NotContains(t, gotParams, "filterIsPositionTpsl")
 }
 
 func boolPtr(v bool) *bool {

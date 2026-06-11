@@ -632,6 +632,11 @@ func (c *Client) GetActiveOrders(ctx context.Context, params *order.GetActiveOrd
 	return c.Order.GetActiveOrders(ctx, params)
 }
 
+// GetHistoryOrderPage gets historical orders with pagination and filters.
+func (c *Client) GetHistoryOrderPage(ctx context.Context, params *order.GetHistoryOrderParams) (*order.ResultPageDataOrder, error) {
+	return c.Order.GetHistoryOrderPage(ctx, params)
+}
+
 // GetOrdersByID retrieves orders using exchange order IDs.
 func (c *Client) GetOrdersByID(ctx context.Context, orderIDs []string) (*order.ResultListOrder, error) {
 	return c.Order.GetOrdersByID(ctx, orderIDs)
@@ -717,9 +722,9 @@ func (c *Client) GetCollateralTransactionByID(ctx context.Context, transactionID
 	return c.Account.GetCollateralTransactionByID(ctx, transactionIDs)
 }
 
-// GetQuoteSummary gets the quote summary for a given contract
-func (c *Client) GetQuoteSummary(ctx context.Context, contractID string) (*quote.ResultGetTickerSummaryModel, error) {
-	return c.Quote.GetQuoteSummary(ctx, contractID)
+// GetQuoteSummary gets the quote summary for a given period.
+func (c *Client) GetQuoteSummary(ctx context.Context, period string) (*quote.ResultGetTickerSummaryModel, error) {
+	return c.Quote.GetQuoteSummary(ctx, period)
 }
 
 // Get24HourQuotes gets the 24-hour quotes for given contracts
@@ -740,6 +745,31 @@ func (c *Client) GetOrderBookDepth(ctx context.Context, params quote.GetOrderBoo
 // GetMultiContractKLine gets the K-line data for multiple contracts
 func (c *Client) GetMultiContractKLine(ctx context.Context, params quote.GetMultiContractKLineParams) (*quote.ResultListContractKline, error) {
 	return c.Quote.GetMultiContractKLine(ctx, params)
+}
+
+// GetAccurateOpenInterest gets accurate open interest by contract ids.
+func (c *Client) GetAccurateOpenInterest(ctx context.Context, params quote.GetAccurateOpenInterestParams) (*quote.ResultListOpenInterest, error) {
+	return c.Quote.GetAccurateOpenInterest(ctx, params)
+}
+
+// GetStatDayTrade gets daily trade statistics.
+func (c *Client) GetStatDayTrade(ctx context.Context, params quote.GetStatDayTradeParams) (*quote.ResultListStatDayTrade, error) {
+	return c.Quote.GetStatDayTrade(ctx, params)
+}
+
+// GetExchangeLongShortRatio gets exchange long short ratio statistics.
+func (c *Client) GetExchangeLongShortRatio(ctx context.Context, params quote.GetExchangeLongShortRatioParams) (*quote.ResultGetExchangeLongShortRatioModel, error) {
+	return c.Quote.GetExchangeLongShortRatio(ctx, params)
+}
+
+// GetEstimatedFee gets daily fee and revenue statistics.
+func (c *Client) GetEstimatedFee(ctx context.Context, params quote.GetEstimatedFeeParams) (*quote.ResultListDailyEstimatedFee, error) {
+	return c.Quote.GetEstimatedFee(ctx, params)
+}
+
+// GetMarketStatus gets current market status and limit prices.
+func (c *Client) GetMarketStatus(ctx context.Context, params quote.GetMarketStatusParams) (*quote.ResultGetMarketStatusModel, error) {
+	return c.Quote.GetMarketStatus(ctx, params)
 }
 
 // GetTransferOutById gets a transfer out record by ID

@@ -41,6 +41,10 @@ type TickerSummary struct {
 	OpenInterest *string `json:"openInterest,omitempty"`
 }
 
+type QuoteSummaryData struct {
+	TickerSummary *TickerSummary `json:"tickerSummary,omitempty"`
+}
+
 // Ticker represents 24-hour ticker data
 type Ticker struct {
 	ContractId         *string `json:"contractId,omitempty"`
@@ -116,14 +120,59 @@ type ContractMultiKline struct {
 	DataList   []Kline `json:"dataList,omitempty"`
 }
 
+type OpenInterest struct {
+	ContractId *string `json:"contractId,omitempty"`
+	Timestamp  *string `json:"timestamp,omitempty"`
+	Size       *string `json:"size,omitempty"`
+}
+
+type StatDayTrade struct {
+	DayTime     *string `json:"dayTime,omitempty"`
+	TotalTrades *string `json:"totalTrades,omitempty"`
+	TotalValue  *string `json:"totalValue,omitempty"`
+	CreateTime  *string `json:"createTime,omitempty"`
+}
+
+type ExchangeLongShortRatio struct {
+	Range       *string `json:"range,omitempty"`
+	ContractId  *string `json:"contractId,omitempty"`
+	Exchange    *string `json:"exchange,omitempty"`
+	BuyRatio    *string `json:"buyRatio,omitempty"`
+	SellRatio   *string `json:"sellRatio,omitempty"`
+	BuyVolUsd   *string `json:"buyVolUsd,omitempty"`
+	SellVolUsd  *string `json:"sellVolUsd,omitempty"`
+	CreatedTime *string `json:"createdTime,omitempty"`
+	UpdatedTime *string `json:"updatedTime,omitempty"`
+}
+
+type ExchangeLongShortRatioData struct {
+	ExchangeLongShortRatioList []ExchangeLongShortRatio `json:"exchangeLongShortRatioList,omitempty"`
+	AllRangeList               []string                 `json:"allRangeList,omitempty"`
+}
+
+type DailyEstimatedFee struct {
+	DayTimestamp *int64  `json:"dayTimestamp,omitempty"`
+	Fee          *string `json:"fee,omitempty"`
+	Revenue      *string `json:"revenue,omitempty"`
+}
+
+type MarketStatus struct {
+	Status         bool    `json:"status"`
+	Force          bool    `json:"force"`
+	ContractId     *int64  `json:"contractId,omitempty"`
+	MarkPrice      *string `json:"markPrice,omitempty"`
+	LimitLowPrice  *string `json:"limitLowPrice,omitempty"`
+	LimitHighPrice *string `json:"limitHighPrice,omitempty"`
+}
+
 // Response types for quote API
 
 // ResultGetTickerSummaryModel represents ticker summary
 type ResultGetTickerSummaryModel struct {
-	Code       string         `json:"code"`
-	Data       *TickerSummary `json:"data"`
-	ErrorParam interface{}    `json:"errorParam"`
-	ErrorMsg   string         `json:"msg"`
+	Code       string            `json:"code"`
+	Data       *QuoteSummaryData `json:"data"`
+	ErrorParam interface{}       `json:"errorParam"`
+	ErrorMsg   string            `json:"msg"`
 }
 
 // ResultListTicker represents list of tickers
@@ -139,7 +188,7 @@ type ResultPageDataKline struct {
 	Code       string         `json:"code"`
 	Data       *PageDataKline `json:"data"`
 	ErrorParam interface{}    `json:"errorParam"`
-	ErrorMsg   string       `json:"msg"`
+	ErrorMsg   string         `json:"msg"`
 }
 
 // ResultListDepth represents list of depth data
@@ -147,7 +196,7 @@ type ResultListDepth struct {
 	Code       string      `json:"code"`
 	Data       []Depth     `json:"data"`
 	ErrorParam interface{} `json:"errorParam"`
-	ErrorMsg   string       `json:"msg"`
+	ErrorMsg   string      `json:"msg"`
 }
 
 // ResultListContractKline represents list of contract K-line data
@@ -155,7 +204,42 @@ type ResultListContractKline struct {
 	Code       string               `json:"code"`
 	Data       []ContractMultiKline `json:"data"`
 	ErrorParam interface{}          `json:"errorParam"`
-	ErrorMsg   string       `json:"msg"`
+	ErrorMsg   string               `json:"msg"`
+}
+
+type ResultListOpenInterest struct {
+	Code       string         `json:"code"`
+	Data       []OpenInterest `json:"data"`
+	ErrorParam interface{}    `json:"errorParam"`
+	ErrorMsg   string         `json:"msg"`
+}
+
+type ResultListStatDayTrade struct {
+	Code       string         `json:"code"`
+	Data       []StatDayTrade `json:"data"`
+	ErrorParam interface{}    `json:"errorParam"`
+	ErrorMsg   string         `json:"msg"`
+}
+
+type ResultGetExchangeLongShortRatioModel struct {
+	Code       string                      `json:"code"`
+	Data       *ExchangeLongShortRatioData `json:"data"`
+	ErrorParam interface{}                 `json:"errorParam"`
+	ErrorMsg   string                      `json:"msg"`
+}
+
+type ResultListDailyEstimatedFee struct {
+	Code       string              `json:"code"`
+	Data       []DailyEstimatedFee `json:"data"`
+	ErrorParam interface{}         `json:"errorParam"`
+	ErrorMsg   string              `json:"msg"`
+}
+
+type ResultGetMarketStatusModel struct {
+	Code       string        `json:"code"`
+	Data       *MarketStatus `json:"data"`
+	ErrorParam interface{}   `json:"errorParam"`
+	ErrorMsg   string        `json:"msg"`
 }
 
 // Request parameter types
@@ -186,4 +270,28 @@ type GetMultiContractKLineParams struct {
 	PriceType   PriceType
 	From        *int64
 	To          *int64
+}
+
+type GetAccurateOpenInterestParams struct {
+	ContractIDList []string
+}
+
+type GetStatDayTradeParams struct {
+	StartDayTimeInclusive string
+	EndDayTimeExclusive   string
+}
+
+type GetExchangeLongShortRatioParams struct {
+	Range                string
+	FilterContractIDList []string
+	FilterExchangeList   []string
+}
+
+type GetEstimatedFeeParams struct {
+	FilterBeginKlineTimeInclusive int64
+	FilterEndKlineTimeExclusive   int64
+}
+
+type GetMarketStatusParams struct {
+	ContractID *int64
 }

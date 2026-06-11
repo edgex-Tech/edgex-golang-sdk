@@ -14,10 +14,7 @@ func TestGetQuoteSummary(t *testing.T) {
 	assert.NoError(t, err)
 
 	ctx := test.GetTestContext()
-	contractID, err := test.ResolveTestContractID(ctx, client)
-	assert.NoError(t, err)
-
-	resp, err := client.GetQuoteSummary(ctx, contractID)
+	resp, err := client.GetQuoteSummary(ctx, "LAST_DAY_1")
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
 	t.Logf("Quote Summary: %s", string(jsonData))
 	assert.NoError(t, err)
@@ -26,8 +23,8 @@ func TestGetQuoteSummary(t *testing.T) {
 
 	data := resp.Data
 	assert.NotNil(t, data)
-	// Data is interface{}, skip detailed assertions
-	t.Logf("Ticker summary data: %v", data)
+	assert.NotNil(t, data.TickerSummary)
+	t.Logf("Ticker summary data: %v", data.TickerSummary)
 }
 
 func TestGet24HourQuotes(t *testing.T) {

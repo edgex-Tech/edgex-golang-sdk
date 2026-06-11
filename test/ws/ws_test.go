@@ -140,8 +140,8 @@ func TestWebSocket(t *testing.T) {
 		{
 			name: "KLine",
 			subFunc: func() error {
-				t.Logf("Public WS subscribe request: channel=%s", fmt.Sprintf("kline.LAST_PRICE.%s.%s", contractID, "DAY_1"))
-				return manager.SubscribeKLine(contractID, "DAY_1", func(message []byte) {
+				t.Logf("Public WS subscribe request: channel=%s", fmt.Sprintf("kline.ORACLE_PRICE.%s.%s", contractID, "DAY_1"))
+				return manager.SubscribeKLineWithPriceType(contractID, "DAY_1", "ORACLE_PRICE", func(message []byte) {
 					t.Logf("KLine message received: %s", string(message))
 					if !klineReceived {
 						close(klineMsgCh)
@@ -154,8 +154,8 @@ func TestWebSocket(t *testing.T) {
 		{
 			name: "Depth",
 			subFunc: func() error {
-				t.Logf("Public WS subscribe request: channel=%s", fmt.Sprintf("depth.%s.15", contractID))
-				return manager.SubscribeDepth(contractID, func(message []byte) {
+				t.Logf("Public WS subscribe request: channel=%s", fmt.Sprintf("depth.%s.200", contractID))
+				return manager.SubscribeDepthLevel(contractID, 200, func(message []byte) {
 					t.Logf("Depth message received: %s", string(message))
 					if !depthReceived {
 						close(depthMsgCh)
