@@ -78,7 +78,7 @@ func main() {
 
 	marginModeResp, err := client.SetMarginMode(ctx, &account.SetMarginModeParams{
 		ContractID: "1001",
-		MarginMode: "ISOLATED",
+		MarginMode: "1",
 	})
 	if err != nil {
 		log.Fatal(err)
