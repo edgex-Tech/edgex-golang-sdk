@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"sort"
 	"strconv"
@@ -155,22 +156,23 @@ func buildSpotDepositAttempt(userAddress, privyAddress, sourceAccount, tokenAddr
 }
 
 func applyFeeToAttempt(attempt map[string]interface{}, fee string) error {
-	grossAmount, err := strconv.ParseInt(fmt.Sprint(attempt["amount"]), 10, 64)
-	if err != nil {
-		return fmt.Errorf("invalid attempt amount: %w", err)
+	grossAmount := new(big.Int)
+	if _, ok := grossAmount.SetString(strings.TrimSpace(fmt.Sprint(attempt["amount"])), 10); !ok {
+		return fmt.Errorf("invalid attempt amount: %s", fmt.Sprint(attempt["amount"]))
 	}
-	feeAmount, err := strconv.ParseInt(strings.TrimSpace(fee), 10, 64)
-	if err != nil {
-		return fmt.Errorf("invalid fee: %w", err)
+	feeAmount := new(big.Int)
+	if _, ok := feeAmount.SetString(strings.TrimSpace(fee), 10); !ok {
+		return fmt.Errorf("invalid fee: %s", fee)
 	}
-	if feeAmount < 0 {
+	if feeAmount.Sign() < 0 {
 		return fmt.Errorf("fee must be non-negative")
 	}
-	if feeAmount >= grossAmount {
-		return fmt.Errorf("fee must be less than gross amount: fee=%d, gross=%d", feeAmount, grossAmount)
+	if feeAmount.Cmp(grossAmount) >= 0 {
+		return fmt.Errorf("fee must be less than gross amount: fee=%s, gross=%s", feeAmount.String(), grossAmount.String())
 	}
-	attempt["fee"] = strconv.FormatInt(feeAmount, 10)
-	attempt["amount"] = strconv.FormatInt(grossAmount-feeAmount, 10)
+	netAmount := new(big.Int).Sub(grossAmount, feeAmount)
+	attempt["fee"] = feeAmount.String()
+	attempt["amount"] = netAmount.String()
 	return nil
 }
 
