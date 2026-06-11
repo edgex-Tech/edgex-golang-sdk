@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/order"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,10 +32,10 @@ func TestIntegration_OrderTypes(t *testing.T) {
 	contract, err := test.ResolveTestContract(ctx, client)
 	assert.NoError(t, err)
 	contractID := contract.ContractId
-	
+
 	quoteResp, err := client.Get24HourQuote(ctx, contractID)
 	assert.NoError(t, err)
-	
+
 	var lastPrice decimal.Decimal
 	if len(quoteResp.Data) > 0 && quoteResp.Data[0].LastPrice != nil {
 		lastPrice, _ = decimal.NewFromString(*quoteResp.Data[0].LastPrice)
@@ -55,7 +55,7 @@ func TestIntegration_OrderTypes(t *testing.T) {
 	t.Run("LimitOrder", func(t *testing.T) {
 		price := lastPrice.Mul(decimal.NewFromFloat(1.02)).Div(tickSize).Ceil().Mul(tickSize)
 		clientOrderID := fmt.Sprintf("sdk-limit-%d", time.Now().UnixNano())
-		
+
 		t.Logf("Creating LIMIT order at price %s...", price.String())
 		resp, err := client.CreateOrder(ctx, &order.CreateOrderParams{
 			ContractId:    contractID,
@@ -66,15 +66,15 @@ func TestIntegration_OrderTypes(t *testing.T) {
 			TimeInForce:   string(order.TimeInForce_GOOD_TIL_CANCEL),
 			ClientOrderId: &clientOrderID,
 		})
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 		assert.NotNil(t, resp.Data)
 		assert.NotNil(t, resp.Data.OrderId)
-		
+
 		orderID := *resp.Data.OrderId
 		t.Logf("✅ LIMIT order created: ID=%s", orderID)
-		
+
 		// Wait and cancel
 		time.Sleep(1 * time.Second)
 		_, err = client.CancelOrder(ctx, &order.CancelOrderParams{OrderId: orderID})
@@ -111,7 +111,7 @@ func TestIntegration_ReduceOnlyOrders(t *testing.T) {
 	// Get market price
 	quoteResp, err := client.Get24HourQuote(ctx, contractID)
 	assert.NoError(t, err)
-	
+
 	var lastPrice decimal.Decimal
 	if len(quoteResp.Data) > 0 && quoteResp.Data[0].LastPrice != nil {
 		lastPrice, _ = decimal.NewFromString(*quoteResp.Data[0].LastPrice)
@@ -129,7 +129,7 @@ func TestIntegration_ReduceOnlyOrders(t *testing.T) {
 	t.Log("Testing Reduce-Only order...")
 	price := lastPrice.Mul(decimal.NewFromFloat(0.98)).Div(tickSize).Floor().Mul(tickSize)
 	clientOrderID := fmt.Sprintf("sdk-reduce-only-%d", time.Now().UnixNano())
-	
+
 	resp, err := client.CreateOrder(ctx, &order.CreateOrderParams{
 		ContractId:    contractID,
 		Price:         price.String(),
@@ -140,20 +140,20 @@ func TestIntegration_ReduceOnlyOrders(t *testing.T) {
 		ReduceOnly:    true,
 		ClientOrderId: &clientOrderID,
 	})
-	
+
 	if err != nil {
 		// Reduce-only may fail if no position
 		t.Logf("Reduce-only order may fail without position: %v", err)
 		return
 	}
-	
+
 	assert.NotNil(t, resp)
 	assert.NotNil(t, resp.Data)
 	assert.NotNil(t, resp.Data.OrderId)
-	
+
 	orderID := *resp.Data.OrderId
 	t.Logf("✅ Reduce-Only order created: ID=%s", orderID)
-	
+
 	time.Sleep(1 * time.Second)
 	_, err = client.CancelOrder(ctx, &order.CancelOrderParams{OrderId: orderID})
 	assert.NoError(t, err)
@@ -175,10 +175,10 @@ func TestIntegration_TimeInForceOptions(t *testing.T) {
 	contract, err := test.ResolveTestContract(ctx, client)
 	assert.NoError(t, err)
 	contractID := contract.ContractId
-	
+
 	quoteResp, err := client.Get24HourQuote(ctx, contractID)
 	assert.NoError(t, err)
-	
+
 	var lastPrice decimal.Decimal
 	if len(quoteResp.Data) > 0 && quoteResp.Data[0].LastPrice != nil {
 		lastPrice, _ = decimal.NewFromString(*quoteResp.Data[0].LastPrice)
@@ -196,7 +196,7 @@ func TestIntegration_TimeInForceOptions(t *testing.T) {
 	// Test GTC (Good Till Cancel)
 	t.Run("GTC_Order", func(t *testing.T) {
 		clientOrderID := fmt.Sprintf("sdk-gtc-%d", time.Now().UnixNano())
-		
+
 		t.Log("Creating GTC (Good Till Cancel) order...")
 		resp, err := client.CreateOrder(ctx, &order.CreateOrderParams{
 			ContractId:    contractID,
@@ -207,13 +207,13 @@ func TestIntegration_TimeInForceOptions(t *testing.T) {
 			TimeInForce:   string(order.TimeInForce_GOOD_TIL_CANCEL),
 			ClientOrderId: &clientOrderID,
 		})
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, resp.Data.OrderId)
-		
+
 		orderID := *resp.Data.OrderId
 		t.Logf("✅ GTC order created: ID=%s", orderID)
-		
+
 		time.Sleep(1 * time.Second)
 		_, err = client.CancelOrder(ctx, &order.CancelOrderParams{OrderId: orderID})
 		assert.NoError(t, err)
@@ -222,7 +222,7 @@ func TestIntegration_TimeInForceOptions(t *testing.T) {
 	// Test IOC (Immediate or Cancel)
 	t.Run("IOC_Order", func(t *testing.T) {
 		clientOrderID := fmt.Sprintf("sdk-ioc-%d", time.Now().UnixNano())
-		
+
 		t.Log("Creating IOC (Immediate Or Cancel) order...")
 		resp, err := client.CreateOrder(ctx, &order.CreateOrderParams{
 			ContractId:    contractID,
@@ -233,16 +233,16 @@ func TestIntegration_TimeInForceOptions(t *testing.T) {
 			TimeInForce:   string(order.TimeInForce_IMMEDIATE_OR_CANCEL),
 			ClientOrderId: &clientOrderID,
 		})
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, resp.Data.OrderId)
-		
+
 		orderID := *resp.Data.OrderId
 		t.Logf("✅ IOC order created: ID=%s (may be auto-canceled if not filled)", orderID)
-		
+
 		// IOC orders are automatically canceled if not immediately filled
 		time.Sleep(2 * time.Second)
-		
+
 		// Verify it was canceled
 		verifyResp, err := client.GetOrdersByID(ctx, []string{orderID})
 		if err == nil && verifyResp != nil && len(verifyResp.Data) > 0 {
@@ -255,7 +255,7 @@ func TestIntegration_TimeInForceOptions(t *testing.T) {
 	// Test FOK (Fill or Kill)
 	t.Run("FOK_Order", func(t *testing.T) {
 		clientOrderID := fmt.Sprintf("sdk-fok-%d", time.Now().UnixNano())
-		
+
 		t.Log("Creating FOK (Fill Or Kill) order...")
 		resp, err := client.CreateOrder(ctx, &order.CreateOrderParams{
 			ContractId:    contractID,
@@ -266,16 +266,16 @@ func TestIntegration_TimeInForceOptions(t *testing.T) {
 			TimeInForce:   string(order.TimeInForce_FILL_OR_KILL),
 			ClientOrderId: &clientOrderID,
 		})
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, resp.Data.OrderId)
-		
+
 		orderID := *resp.Data.OrderId
 		t.Logf("✅ FOK order created: ID=%s (must fill completely or cancel)", orderID)
-		
+
 		// FOK orders are automatically canceled if not completely filled
 		time.Sleep(2 * time.Second)
-		
+
 		// Verify final status
 		verifyResp, err := client.GetOrdersByID(ctx, []string{orderID})
 		if err == nil && verifyResp != nil && len(verifyResp.Data) > 0 {

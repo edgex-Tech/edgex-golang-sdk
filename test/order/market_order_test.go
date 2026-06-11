@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/metadata"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/metadata"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/order"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
@@ -52,7 +52,7 @@ func TestMarketOrderBuy(t *testing.T) {
 		Type:          order.OrderTypeMarket,
 		Side:          order.OrderSideBuy,
 		Size:          size,
-		Price:         "0", // Market order doesn't need price
+		Price:         "0",                                           // Market order doesn't need price
 		TimeInForce:   string(order.TimeInForce_IMMEDIATE_OR_CANCEL), // Required for market orders
 		ClientOrderId: &clientOrderID,
 		ReduceOnly:    false,
@@ -61,7 +61,7 @@ func TestMarketOrderBuy(t *testing.T) {
 	t.Logf("Creating MARKET BUY order: size=%s, timeInForce=%s", size, params.TimeInForce)
 
 	resp, err := client.CreateOrder(ctx, params)
-	
+
 	if err != nil {
 		t.Logf("Error creating market order: %v", err)
 		// Market orders may fail due to insufficient liquidity in testnet
@@ -82,7 +82,7 @@ func TestMarketOrderBuy(t *testing.T) {
 
 	// Query the order to verify details
 	time.Sleep(500 * time.Millisecond) // Brief wait for order processing
-	
+
 	orders, err := client.GetOrdersByID(ctx, []string{orderID})
 	if err == nil && len(orders.Data) > 0 {
 		createdOrder := orders.Data[0]
@@ -171,7 +171,7 @@ func TestMarketOrderSell(t *testing.T) {
 	t.Logf("Creating MARKET SELL order: size=%s, timeInForce=%s", size, params.TimeInForce)
 
 	resp, err := client.CreateOrder(ctx, params)
-	
+
 	if err != nil {
 		t.Logf("Error creating market order: %v", err)
 		t.Skip("Skipping test due to market order error (may be liquidity issue)")
@@ -191,7 +191,7 @@ func TestMarketOrderSell(t *testing.T) {
 
 	// Query the order to verify details
 	time.Sleep(500 * time.Millisecond)
-	
+
 	orders, err := client.GetOrdersByID(ctx, []string{orderID})
 	if err == nil && len(orders.Data) > 0 {
 		createdOrder := orders.Data[0]
@@ -215,7 +215,7 @@ func TestMarketOrderSell(t *testing.T) {
 			if fillSize.GreaterThan(decimal.Zero) {
 				executedPrice := fillValue.Div(fillSize)
 				t.Logf("Executed %s @ %s USDC (average)", fillSize.String(), executedPrice.String())
-				
+
 				// Market sell should execute near or slightly below reference price
 				// Allow 5% slippage tolerance for testnet
 				minExpectedPrice := referencePrice.Mul(decimal.NewFromFloat(0.95))
@@ -225,5 +225,3 @@ func TestMarketOrderSell(t *testing.T) {
 		}
 	}
 }
-
-

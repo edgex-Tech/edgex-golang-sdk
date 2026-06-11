@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/order"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +33,7 @@ func TestIntegration_LeverageAdjustment(t *testing.T) {
 	contract, err := test.ResolveTestContract(ctx, client)
 	assert.NoError(t, err)
 	assert.NotNil(t, contract)
-	
+
 	contractID := contract.ContractId
 	t.Logf("Using contract: %s", contractID)
 
@@ -42,7 +42,7 @@ func TestIntegration_LeverageAdjustment(t *testing.T) {
 	assetResp, err := client.GetAccountAsset(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, assetResp)
-	
+
 	// Step 3: Update leverage to 5x
 	t.Log("Step 3: Updating leverage to 5x...")
 	targetLeverage := "5"
@@ -69,12 +69,12 @@ func TestIntegration_LeverageAdjustment(t *testing.T) {
 
 	// Step 5: Create a test order to verify leverage is effective
 	t.Log("Step 5: Creating test order with new leverage...")
-	
+
 	// Get current price
 	quoteResp, err := client.Get24HourQuote(ctx, contractID)
 	assert.NoError(t, err)
 	assert.NotNil(t, quoteResp)
-	
+
 	var lastPrice decimal.Decimal
 	if len(quoteResp.Data) > 0 && quoteResp.Data[0].LastPrice != nil {
 		lastPrice, err = decimal.NewFromString(*quoteResp.Data[0].LastPrice)
@@ -112,7 +112,7 @@ func TestIntegration_LeverageAdjustment(t *testing.T) {
 	assert.NotNil(t, createResp)
 	assert.NotNil(t, createResp.Data)
 	assert.NotNil(t, createResp.Data.OrderId)
-	
+
 	orderID := *createResp.Data.OrderId
 	t.Logf("Test order created: ID=%s", orderID)
 

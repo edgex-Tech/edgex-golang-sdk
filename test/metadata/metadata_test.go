@@ -3,7 +3,7 @@ package metadata
 import (
 	"testing"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,19 +32,19 @@ func TestGetServerTime(t *testing.T) {
 
 	ctx := test.GetTestContext()
 	result, err := client.GetServerTime(ctx)
-	
+
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
-	
+
 	if !assert.NotNil(t, result) {
 		return
 	}
-	
+
 	assert.Equal(t, "SUCCESS", result.Code)
 	assert.NotNil(t, result.Data)
 	assert.NotEmpty(t, result.Data.TimeMillis)
-	
+
 	t.Logf("Server Time: %s", result.Data.TimeMillis)
 }

@@ -18,7 +18,7 @@ Official Golang SDK for EdgeX V2 API - A high-performance, production-ready SDK 
 ## 📦 Installation
 
 ```bash
-go get github.com/edgex-Tech/edgex-golang-sdk@main-v2
+go get github.com/edgex-Tech/edgex-golang-sdk/v2@v2.0.0
 ```
 
 **Requirements:** Go 1.22 or higher
@@ -49,9 +49,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/account"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/account"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/order"
 )
 
 func main() {
@@ -256,6 +256,21 @@ macOS 26 note:
 # dyld: missing LC_UUID load command
 go test -ldflags=-linkmode=external ./sdk/...
 go test -ldflags=-linkmode=external ./...
+```
+
+### Local Replace For SDK Testing
+
+When testing a local SDK checkout together with `official-golang-sdk-test`, keep the SDK module path as:
+
+```go
+module github.com/edgex-Tech/edgex-golang-sdk/v2
+```
+
+and use a local `replace` in `official-golang-sdk-test/go.mod`:
+
+```go
+require github.com/edgex-Tech/edgex-golang-sdk/v2 v2.0.0
+replace github.com/edgex-Tech/edgex-golang-sdk/v2 => ../edgex-golang-sdk-pedro
 ```
 
 ### Test Scenarios

@@ -4,28 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/quote"
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/quote"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestGetQuoteSummary(t *testing.T) {
-	client, err := test.CreateTestClient()
-	assert.NoError(t, err)
-
-	ctx := test.GetTestContext()
-	resp, err := client.GetQuoteSummary(ctx, "LAST_DAY_1")
-	jsonData, _ := json.MarshalIndent(resp, "", "  ")
-	t.Logf("Quote Summary: %s", string(jsonData))
-	assert.NoError(t, err)
-	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.Code)
-
-	data := resp.Data
-	assert.NotNil(t, data)
-	assert.NotNil(t, data.TickerSummary)
-	t.Logf("Ticker summary data: %v", data.TickerSummary)
-}
 
 func TestGet24HourQuotes(t *testing.T) {
 	client, err := test.CreateTestClient()

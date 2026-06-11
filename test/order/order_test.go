@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/metadata"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/metadata"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/order"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )

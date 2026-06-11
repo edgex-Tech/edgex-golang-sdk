@@ -1,4 +1,4 @@
-module github.com/edgex-Tech/edgex-golang-sdk
+module github.com/edgex-Tech/edgex-golang-sdk/v2
 
 go 1.22.7
 

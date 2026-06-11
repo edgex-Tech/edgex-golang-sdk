@@ -41,31 +41,6 @@ func decodeResponse[T any](resp *http.Response, operation string) (*T, error) {
 	return &result, nil
 }
 
-// GetQuoteSummary gets the quote summary for the requested period.
-func (c *Client) GetQuoteSummary(ctx context.Context, period string) (*ResultGetTickerSummaryModel, error) {
-	url := fmt.Sprintf("%s/api/v2/public/quote/getTicketSummary", c.c.GetBaseURL())
-	queryParams := map[string]string{}
-	if strings.TrimSpace(period) != "" {
-		queryParams["period"] = period
-	}
-
-	resp, err := c.c.HttpRequest(url, "GET", nil, queryParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get quote summary: %w", err)
-	}
-	defer resp.Body.Close()
-
-	result, err := decodeResponse[ResultGetTickerSummaryModel](resp, "get quote summary")
-	if err != nil {
-		return nil, err
-	}
-	if result.Code != "SUCCESS" {
-		return nil, fmt.Errorf("request failed with code: %s", result.Code)
-	}
-
-	return result, nil
-}
-
 // Get24HourQuote gets the 24-hour quotes for given contracts
 func (c *Client) Get24HourQuote(ctx context.Context, contractId string) (*ResultListTicker, error) {
 	url := fmt.Sprintf("%s/api/v2/public/quote/getTicker", c.c.GetBaseURL())
@@ -190,104 +165,6 @@ func (c *Client) GetMultiContractKLine(ctx context.Context, params GetMultiContr
 		return nil, fmt.Errorf("request failed with code: %s", result.Code)
 	}
 
-	return result, nil
-}
-
-func (c *Client) GetAccurateOpenInterest(ctx context.Context, params GetAccurateOpenInterestParams) (*ResultListOpenInterest, error) {
-	url := fmt.Sprintf("%s/api/v2/public/quote/getAccurateOpenInterest", c.c.GetBaseURL())
-	queryParams := map[string]string{}
-	if len(params.ContractIDList) > 0 {
-		queryParams["contractIdList"] = strings.Join(params.ContractIDList, ",")
-	}
-
-	resp, err := c.c.HttpRequest(url, "GET", nil, queryParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get accurate open interest: %w", err)
-	}
-	defer resp.Body.Close()
-
-	result, err := decodeResponse[ResultListOpenInterest](resp, "get accurate open interest")
-	if err != nil {
-		return nil, err
-	}
-	if result.Code != "SUCCESS" {
-		return nil, fmt.Errorf("request failed with code: %s", result.Code)
-	}
-	return result, nil
-}
-
-func (c *Client) GetStatDayTrade(ctx context.Context, params GetStatDayTradeParams) (*ResultListStatDayTrade, error) {
-	url := fmt.Sprintf("%s/api/v2/public/quote/getStatDayTrade", c.c.GetBaseURL())
-	queryParams := map[string]string{
-		"startDayTimeInclusive": params.StartDayTimeInclusive,
-		"endDayTimeExclusive":   params.EndDayTimeExclusive,
-	}
-
-	resp, err := c.c.HttpRequest(url, "GET", nil, queryParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get stat day trade: %w", err)
-	}
-	defer resp.Body.Close()
-
-	result, err := decodeResponse[ResultListStatDayTrade](resp, "get stat day trade")
-	if err != nil {
-		return nil, err
-	}
-	if result.Code != "SUCCESS" {
-		return nil, fmt.Errorf("request failed with code: %s", result.Code)
-	}
-	return result, nil
-}
-
-func (c *Client) GetExchangeLongShortRatio(ctx context.Context, params GetExchangeLongShortRatioParams) (*ResultGetExchangeLongShortRatioModel, error) {
-	url := fmt.Sprintf("%s/api/v2/public/quote/getExchangeLongShortRatio", c.c.GetBaseURL())
-	queryParams := map[string]string{}
-	if strings.TrimSpace(params.Range) != "" {
-		queryParams["range"] = params.Range
-	}
-	if len(params.FilterContractIDList) > 0 {
-		queryParams["filterContractIdList"] = strings.Join(params.FilterContractIDList, ",")
-	}
-	if len(params.FilterExchangeList) > 0 {
-		queryParams["filterExchangeList"] = strings.Join(params.FilterExchangeList, ",")
-	}
-
-	resp, err := c.c.HttpRequest(url, "GET", nil, queryParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get exchange long short ratio: %w", err)
-	}
-	defer resp.Body.Close()
-
-	result, err := decodeResponse[ResultGetExchangeLongShortRatioModel](resp, "get exchange long short ratio")
-	if err != nil {
-		return nil, err
-	}
-	if result.Code != "SUCCESS" {
-		return nil, fmt.Errorf("request failed with code: %s", result.Code)
-	}
-	return result, nil
-}
-
-func (c *Client) GetEstimatedFee(ctx context.Context, params GetEstimatedFeeParams) (*ResultListDailyEstimatedFee, error) {
-	url := fmt.Sprintf("%s/api/v2/public/quote/fee", c.c.GetBaseURL())
-	queryParams := map[string]string{
-		"filterBeginKlineTimeInclusive": strconv.FormatInt(params.FilterBeginKlineTimeInclusive, 10),
-		"filterEndKlineTimeExclusive":   strconv.FormatInt(params.FilterEndKlineTimeExclusive, 10),
-	}
-
-	resp, err := c.c.HttpRequest(url, "GET", nil, queryParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get estimated fee: %w", err)
-	}
-	defer resp.Body.Close()
-
-	result, err := decodeResponse[ResultListDailyEstimatedFee](resp, "get estimated fee")
-	if err != nil {
-		return nil, err
-	}
-	if result.Code != "SUCCESS" {
-		return nil, fmt.Errorf("request failed with code: %s", result.Code)
-	}
 	return result, nil
 }
 

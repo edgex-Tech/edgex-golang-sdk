@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/internal"
 )
 
 const (

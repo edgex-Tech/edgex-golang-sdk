@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
-	metadatapkg "github.com/edgex-Tech/edgex-golang-sdk/sdk/metadata"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/internal"
+	metadatapkg "github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/metadata"
 	"github.com/shopspring/decimal"
 )
 

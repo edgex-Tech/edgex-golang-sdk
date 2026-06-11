@@ -16,14 +16,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/account"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/funding"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/metadata"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/quote"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/transfer"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/unified_asset"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/account"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/funding"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/internal"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/metadata"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/order"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/quote"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/transfer"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/unified_asset"
 	"github.com/shopspring/decimal"
 )
 
@@ -722,11 +722,6 @@ func (c *Client) GetCollateralTransactionByID(ctx context.Context, transactionID
 	return c.Account.GetCollateralTransactionByID(ctx, transactionIDs)
 }
 
-// GetQuoteSummary gets the quote summary for a given period.
-func (c *Client) GetQuoteSummary(ctx context.Context, period string) (*quote.ResultGetTickerSummaryModel, error) {
-	return c.Quote.GetQuoteSummary(ctx, period)
-}
-
 // Get24HourQuotes gets the 24-hour quotes for given contracts
 func (c *Client) Get24HourQuote(ctx context.Context, contractId string) (*quote.ResultListTicker, error) {
 	return c.Quote.Get24HourQuote(ctx, contractId)
@@ -745,26 +740,6 @@ func (c *Client) GetOrderBookDepth(ctx context.Context, params quote.GetOrderBoo
 // GetMultiContractKLine gets the K-line data for multiple contracts
 func (c *Client) GetMultiContractKLine(ctx context.Context, params quote.GetMultiContractKLineParams) (*quote.ResultListContractKline, error) {
 	return c.Quote.GetMultiContractKLine(ctx, params)
-}
-
-// GetAccurateOpenInterest gets accurate open interest by contract ids.
-func (c *Client) GetAccurateOpenInterest(ctx context.Context, params quote.GetAccurateOpenInterestParams) (*quote.ResultListOpenInterest, error) {
-	return c.Quote.GetAccurateOpenInterest(ctx, params)
-}
-
-// GetStatDayTrade gets daily trade statistics.
-func (c *Client) GetStatDayTrade(ctx context.Context, params quote.GetStatDayTradeParams) (*quote.ResultListStatDayTrade, error) {
-	return c.Quote.GetStatDayTrade(ctx, params)
-}
-
-// GetExchangeLongShortRatio gets exchange long short ratio statistics.
-func (c *Client) GetExchangeLongShortRatio(ctx context.Context, params quote.GetExchangeLongShortRatioParams) (*quote.ResultGetExchangeLongShortRatioModel, error) {
-	return c.Quote.GetExchangeLongShortRatio(ctx, params)
-}
-
-// GetEstimatedFee gets daily fee and revenue statistics.
-func (c *Client) GetEstimatedFee(ctx context.Context, params quote.GetEstimatedFeeParams) (*quote.ResultListDailyEstimatedFee, error) {
-	return c.Quote.GetEstimatedFee(ctx, params)
 }
 
 // GetMarketStatus gets current market status and limit prices.
