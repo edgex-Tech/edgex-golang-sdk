@@ -5,6 +5,10 @@ Official Golang SDK for EdgeX V2 API - A high-performance, production-ready SDK 
 [![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+## Branch Status
+
+The `main` branch contains the current EdgeX V2 SDK. The legacy V1 SDK has moved to the `v1` branch and is deprecated. New integrations should use V2.
+
 ## 🚀 Features
 
 - ✅ **Current Code-Based V2 Coverage** - account/order/transfer plus unified-asset and CCTP helpers
