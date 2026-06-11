@@ -12,7 +12,7 @@ type GetPositionOrdersParams struct {
 	// Required parameters
 	ContractId string // Contract ID
 	TermCount  int32  // Position term count
-	
+
 	// Pagination parameters
 	Page     int32 // Page number (>=1)
 	PageSize int32 // Page size (1-100)
@@ -36,41 +36,41 @@ type PositionOrdersPageData struct {
 
 // PositionOrderData represents a single order in position history
 type PositionOrderData struct {
-	ID                 string `json:"id"`
-	UserID             string `json:"userId"`
-	AccountID          string `json:"accountId"`
-	CoinID             string `json:"coinId"`
-	ContractID         string `json:"contractId"`
-	Type               string `json:"type"`
-	Side               string `json:"side"`
-	Price              string `json:"price"`
-	Size               string `json:"size"`
-	UnfillSize         string `json:"unfillSize"`
-	ExecutedSize       string `json:"executedSize"`
-	ExecutedValue      string `json:"executedValue"`
-	ExecutedFee        string `json:"executedFee"`
-	ExecutedAvgPrice   string `json:"executedAvgPrice"`
-	Status             string `json:"status"`
-	TimeInForce        string `json:"timeInForce"`
-	ExpireTime         string `json:"expireTime"`
-	ClientOrderID      string `json:"clientOrderId"`
-	ReduceOnly         bool   `json:"reduceOnly"`
-	PostOnly           bool   `json:"postOnly"`
-	Hidden             bool   `json:"hidden"`
-	CreatedTime        string `json:"createdTime"`
-	UpdatedTime        string `json:"updatedTime"`
+	ID               string `json:"id"`
+	UserID           string `json:"userId"`
+	AccountID        string `json:"accountId"`
+	CoinID           string `json:"coinId"`
+	ContractID       string `json:"contractId"`
+	Type             string `json:"type"`
+	Side             string `json:"side"`
+	Price            string `json:"price"`
+	Size             string `json:"size"`
+	UnfillSize       string `json:"unfillSize"`
+	ExecutedSize     string `json:"executedSize"`
+	ExecutedValue    string `json:"executedValue"`
+	ExecutedFee      string `json:"executedFee"`
+	ExecutedAvgPrice string `json:"executedAvgPrice"`
+	Status           string `json:"status"`
+	TimeInForce      string `json:"timeInForce"`
+	ExpireTime       string `json:"expireTime"`
+	ClientOrderID    string `json:"clientOrderId"`
+	ReduceOnly       bool   `json:"reduceOnly"`
+	PostOnly         bool   `json:"postOnly"`
+	Hidden           bool   `json:"hidden"`
+	CreatedTime      string `json:"createdTime"`
+	UpdatedTime      string `json:"updatedTime"`
 }
 
 // GetPositionOrders gets historical orders by position term (V2 only)
 func (c *Client) GetPositionOrders(ctx context.Context, params *GetPositionOrdersParams) (*GetPositionOrdersResponse, error) {
 	url := fmt.Sprintf("%s/api/v2/private/account/getPositionOrders", c.c.GetBaseURL())
-	
+
 	queryParams := map[string]string{
 		"accountId":  fmt.Sprintf("%d", c.c.GetAccountID()),
 		"contractId": params.ContractId,
 		"termCount":  fmt.Sprintf("%d", params.TermCount),
 	}
-	
+
 	// Add optional pagination parameters
 	if params.Page > 0 {
 		queryParams["page"] = fmt.Sprintf("%d", params.Page)

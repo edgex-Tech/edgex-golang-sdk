@@ -240,6 +240,18 @@ type QuoteEvent struct {
 	} `json:"content"`
 }
 
+// TradeEvent represents a private trade event message.
+type TradeEvent struct {
+	Type    string `json:"type"`
+	Content struct {
+		Event     string                     `json:"event"`
+		Version   int64                      `json:"version"`
+		Time      int64                      `json:"time"`
+		AccountID int64                      `json:"accountId"`
+		Data      map[string]json.RawMessage `json:"data"`
+	} `json:"content"`
+}
+
 // handleMessages processes incoming WebSocket messages
 func (c *Client) handleMessages() {
 	for {
@@ -290,6 +302,23 @@ func (c *Client) handleMessages() {
 				channelType := strings.Split(quoteEvent.Channel, ".")[0]
 				if handler, ok := c.handlers[channelType]; ok {
 					handler(message)
+				}
+				continue
+			}
+
+			if msg.Type == "trade-event" {
+				if handler, ok := c.handlers[msg.Type]; ok {
+					handler(message)
+				}
+
+				var tradeEvent TradeEvent
+				if err := json.Unmarshal(message, &tradeEvent); err != nil {
+					continue
+				}
+				for group := range tradeEvent.Content.Data {
+					if handler, ok := c.handlers[group]; ok {
+						handler(message)
+					}
 				}
 				continue
 			}

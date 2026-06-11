@@ -51,11 +51,12 @@ type ResultListFundingRate struct {
 
 // GetFundingRateParams represents parameters for GetFundingRate
 type GetFundingRateParams struct {
-	ContractID string
-	Size       *int32
-	Offset     *string
-	From       *int64
-	To         *int64
+	ContractID                  string
+	Size                        *int32
+	Offset                      *string
+	From                        *int64
+	To                          *int64
+	FilterSettlementFundingRate *bool
 }
 
 // GetLatestFundingRateParams represents parameters for GetLatestFundingRate

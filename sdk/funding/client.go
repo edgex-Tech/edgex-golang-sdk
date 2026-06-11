@@ -30,8 +30,7 @@ func NewClient(client clientInterface) *Client {
 func (c *Client) GetFundingRate(ctx context.Context, params GetFundingRateParams) (*ResultPageDataFundingRate, error) {
 	url := fmt.Sprintf("%s/api/v2/public/funding/getFundingRatePage", c.c.GetBaseURL())
 	queryParams := map[string]string{
-		"contractId":                   params.ContractID,
-		"filterSettlementFundingRate": "true",
+		"contractId": params.ContractID,
 	}
 
 	if params.Size != nil {
@@ -45,6 +44,9 @@ func (c *Client) GetFundingRate(ctx context.Context, params GetFundingRateParams
 	}
 	if params.To != nil {
 		queryParams["filterEndTimeExclusive"] = strconv.FormatInt(*params.To, 10)
+	}
+	if params.FilterSettlementFundingRate != nil {
+		queryParams["filterSettlementFundingRate"] = strconv.FormatBool(*params.FilterSettlementFundingRate)
 	}
 
 	resp, err := c.c.HttpRequest(url, "GET", nil, queryParams)
@@ -99,4 +101,3 @@ func (c *Client) GetLatestFundingRate(ctx context.Context, params GetLatestFundi
 
 	return &result, nil
 }
-

@@ -33,14 +33,6 @@ const (
 	PriceTypeOpenInterest PriceType = "OPEN_INTEREST"
 )
 
-// TickerSummary represents ticker summary data
-type TickerSummary struct {
-	Period       *string `json:"period,omitempty"`
-	Trades       *string `json:"trades,omitempty"`
-	Value        *string `json:"value,omitempty"`
-	OpenInterest *string `json:"openInterest,omitempty"`
-}
-
 // Ticker represents 24-hour ticker data
 type Ticker struct {
 	ContractId         *string `json:"contractId,omitempty"`
@@ -116,15 +108,16 @@ type ContractMultiKline struct {
 	DataList   []Kline `json:"dataList,omitempty"`
 }
 
-// Response types for quote API
-
-// ResultGetTickerSummaryModel represents ticker summary
-type ResultGetTickerSummaryModel struct {
-	Code       string         `json:"code"`
-	Data       *TickerSummary `json:"data"`
-	ErrorParam interface{}    `json:"errorParam"`
-	ErrorMsg   string         `json:"msg"`
+type MarketStatus struct {
+	Status         bool    `json:"status"`
+	Force          bool    `json:"force"`
+	ContractId     *int64  `json:"contractId,omitempty"`
+	MarkPrice      *string `json:"markPrice,omitempty"`
+	LimitLowPrice  *string `json:"limitLowPrice,omitempty"`
+	LimitHighPrice *string `json:"limitHighPrice,omitempty"`
 }
+
+// Response types for quote API
 
 // ResultListTicker represents list of tickers
 type ResultListTicker struct {
@@ -139,7 +132,7 @@ type ResultPageDataKline struct {
 	Code       string         `json:"code"`
 	Data       *PageDataKline `json:"data"`
 	ErrorParam interface{}    `json:"errorParam"`
-	ErrorMsg   string       `json:"msg"`
+	ErrorMsg   string         `json:"msg"`
 }
 
 // ResultListDepth represents list of depth data
@@ -147,7 +140,7 @@ type ResultListDepth struct {
 	Code       string      `json:"code"`
 	Data       []Depth     `json:"data"`
 	ErrorParam interface{} `json:"errorParam"`
-	ErrorMsg   string       `json:"msg"`
+	ErrorMsg   string      `json:"msg"`
 }
 
 // ResultListContractKline represents list of contract K-line data
@@ -155,7 +148,14 @@ type ResultListContractKline struct {
 	Code       string               `json:"code"`
 	Data       []ContractMultiKline `json:"data"`
 	ErrorParam interface{}          `json:"errorParam"`
-	ErrorMsg   string       `json:"msg"`
+	ErrorMsg   string               `json:"msg"`
+}
+
+type ResultGetMarketStatusModel struct {
+	Code       string        `json:"code"`
+	Data       *MarketStatus `json:"data"`
+	ErrorParam interface{}   `json:"errorParam"`
+	ErrorMsg   string        `json:"msg"`
 }
 
 // Request parameter types
@@ -186,4 +186,8 @@ type GetMultiContractKLineParams struct {
 	PriceType   PriceType
 	From        *int64
 	To          *int64
+}
+
+type GetMarketStatusParams struct {
+	ContractID *int64
 }

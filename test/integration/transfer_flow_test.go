@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/transfer"
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/transfer"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +34,7 @@ func TestIntegration_TransferFlow(t *testing.T) {
 	availableResp, err := client.GetWithdrawAvailableAmount(ctx, transfer.GetWithdrawAvailableAmountParams{
 		CoinId: coinID,
 	})
-	
+
 	if err != nil {
 		// This endpoint may have special requirements
 		if strings.Contains(err.Error(), "INVALID") || strings.Contains(err.Error(), "NOT_FOUND") {
@@ -56,11 +56,11 @@ func TestIntegration_TransferFlow(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, transferOutResp)
-	
+
 	if transferOutResp.Data != nil {
 		outCount := len(transferOutResp.Data)
 		t.Logf("Transfer out records found: %d", outCount)
-		
+
 		for i, record := range transferOutResp.Data {
 			if record.Id != nil {
 				t.Logf("Transfer out %d: ID=%s", i+1, *record.Id)
@@ -75,11 +75,11 @@ func TestIntegration_TransferFlow(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, transferInResp)
-	
+
 	if transferInResp.Data != nil {
 		inCount := len(transferInResp.Data)
 		t.Logf("Transfer in records found: %d", inCount)
-		
+
 		for i, record := range transferInResp.Data {
 			if record.Id != nil {
 				t.Logf("Transfer in %d: ID=%s", i+1, *record.Id)
@@ -92,7 +92,7 @@ func TestIntegration_TransferFlow(t *testing.T) {
 	assetResp, err := client.GetAccountAsset(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, assetResp)
-	
+
 	if assetResp.Data != nil {
 		t.Logf("Account has %d collateral types", len(assetResp.Data.CollateralList))
 		for i, collateral := range assetResp.Data.CollateralList {
@@ -108,6 +108,6 @@ func TestIntegration_TransferFlow(t *testing.T) {
 // 1. A valid target account ID
 // 2. Sufficient balance
 // 3. EDGEX_ENABLE_MUTATION_TESTS=true
-// 
+//
 // Withdrawal tests are intentionally skipped per user's request
 // to be tested last.

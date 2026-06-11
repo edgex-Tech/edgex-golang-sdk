@@ -37,7 +37,11 @@ func NewTypedDataDomain(name, version, chainID, verifyingContract string) (Typed
 	chainID = strings.TrimSpace(chainID)
 	if chainID != "" {
 		chainIDInt := big.NewInt(0)
-		if _, ok := chainIDInt.SetString(chainID, 10); !ok {
+		base := 10
+		if strings.HasPrefix(strings.ToLower(chainID), "0x") {
+			base = 0
+		}
+		if _, ok := chainIDInt.SetString(chainID, base); !ok {
 			return TypedDataDomain{}, fmt.Errorf("invalid chain id: %s", chainID)
 		}
 		if chainIDInt.Sign() < 0 {

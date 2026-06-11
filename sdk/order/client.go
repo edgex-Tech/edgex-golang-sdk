@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
-	metadatapkg "github.com/edgex-Tech/edgex-golang-sdk/sdk/metadata"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/internal"
+	metadatapkg "github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/metadata"
 	"github.com/shopspring/decimal"
 )
 
@@ -166,7 +166,7 @@ func (c *Client) createOrderV2(ctx context.Context, params *CreateOrderParams, m
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse size: %w", err)
 	}
-	
+
 	// For conditional orders (STOP_MARKET, TAKE_PROFIT_MARKET) with triggerPrice,
 	// use trigger price for l2Value calculation when price is 0
 	if l2Price.IsZero() && params.TriggerPrice != "" {
@@ -175,7 +175,7 @@ func (c *Client) createOrderV2(ctx context.Context, params *CreateOrderParams, m
 			l2Price = triggerPriceDec
 		}
 	}
-	
+
 	l2Value := l2Price.Mul(size)
 
 	feeRate, err := parseMaxFeeRate(contract)
@@ -391,6 +391,13 @@ func (c *Client) postCreateOrder(ctx context.Context, body map[string]interface{
 	return &result, nil
 }
 
+func joinOptionalBoolFilter(value *bool) string {
+	if value == nil {
+		return ""
+	}
+	return strconv.FormatBool(*value)
+}
+
 // CancelOrder cancels a specific order
 func (c *Client) CancelOrder(ctx context.Context, params *CancelOrderParams) (interface{}, error) {
 	var url string
@@ -469,14 +476,14 @@ func (c *Client) GetActiveOrders(ctx context.Context, params *GetActiveOrderPara
 	if len(params.FilterStatusList) > 0 {
 		queryParams["filterStatusList"] = strings.Join(params.FilterStatusList, ",")
 	}
-	if params.FilterIsLiquidate != nil {
-		queryParams["filterIsLiquidate"] = strconv.FormatBool(*params.FilterIsLiquidate)
+	if value := joinOptionalBoolFilter(params.FilterIsLiquidate); value != "" {
+		queryParams["filterIsLiquidateList"] = value
 	}
-	if params.FilterIsDeleverage != nil {
-		queryParams["filterIsDeleverage"] = strconv.FormatBool(*params.FilterIsDeleverage)
+	if value := joinOptionalBoolFilter(params.FilterIsDeleverage); value != "" {
+		queryParams["filterIsDeleverageList"] = value
 	}
-	if params.FilterIsPositionTpsl != nil {
-		queryParams["filterIsPositionTpsl"] = strconv.FormatBool(*params.FilterIsPositionTpsl)
+	if value := joinOptionalBoolFilter(params.FilterIsPositionTpsl); value != "" {
+		queryParams["filterIsPositionTpslList"] = value
 	}
 	if params.FilterStartCreatedTimeInclusive > 0 {
 		queryParams["filterStartCreatedTimeInclusive"] = strconv.FormatUint(params.FilterStartCreatedTimeInclusive, 10)
@@ -498,6 +505,73 @@ func (c *Client) GetActiveOrders(ctx context.Context, params *GetActiveOrderPara
 
 	var result ResultPageDataOrder
 	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+
+	return &result, nil
+}
+
+// GetHistoryOrderPage gets historical orders with pagination and filters.
+func (c *Client) GetHistoryOrderPage(ctx context.Context, params *GetHistoryOrderParams) (*ResultPageDataOrder, error) {
+	url := fmt.Sprintf("%s/api/v2/private/order/getHistoryOrderPage", c.c.GetBaseURL())
+	queryParams := map[string]string{
+		"accountId": strconv.FormatInt(c.c.GetAccountID(), 10),
+	}
+
+	if params != nil {
+		if params.Size != "" {
+			queryParams["size"] = params.Size
+		}
+		if params.OffsetData != "" {
+			queryParams["offsetData"] = params.OffsetData
+		}
+
+		if len(params.FilterCoinIdList) > 0 {
+			queryParams["filterCoinIdList"] = strings.Join(params.FilterCoinIdList, ",")
+		}
+		if len(params.FilterContractIdList) > 0 {
+			queryParams["filterContractIdList"] = strings.Join(params.FilterContractIdList, ",")
+		}
+		if len(params.FilterTypeList) > 0 {
+			queryParams["filterTypeList"] = strings.Join(params.FilterTypeList, ",")
+		}
+		if len(params.FilterStatusList) > 0 {
+			queryParams["filterStatusList"] = strings.Join(params.FilterStatusList, ",")
+		}
+		if value := joinOptionalBoolFilter(params.FilterIsLiquidate); value != "" {
+			queryParams["filterIsLiquidateList"] = value
+		}
+		if value := joinOptionalBoolFilter(params.FilterIsDeleverage); value != "" {
+			queryParams["filterIsDeleverageList"] = value
+		}
+		if value := joinOptionalBoolFilter(params.FilterIsPositionTpsl); value != "" {
+			queryParams["filterIsPositionTpslList"] = value
+		}
+		if params.FilterStartCreatedTimeInclusive > 0 {
+			queryParams["filterStartCreatedTimeInclusive"] = strconv.FormatUint(params.FilterStartCreatedTimeInclusive, 10)
+		}
+		if params.FilterEndCreatedTimeExclusive > 0 {
+			queryParams["filterEndCreatedTimeExclusive"] = strconv.FormatUint(params.FilterEndCreatedTimeExclusive, 10)
+		}
+	}
+
+	resp, err := c.c.HttpRequest(url, "GET", nil, queryParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get history orders: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	var result ResultPageDataOrder
+	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
@@ -531,14 +605,14 @@ func (c *Client) GetOrderFillTransactions(ctx context.Context, params *OrderFill
 	if len(params.FilterOrderIdList) > 0 {
 		queryParams["filterOrderIdList"] = strings.Join(params.FilterOrderIdList, ",")
 	}
-	if params.FilterIsLiquidate != nil {
-		queryParams["filterIsLiquidate"] = strconv.FormatBool(*params.FilterIsLiquidate)
+	if value := joinOptionalBoolFilter(params.FilterIsLiquidate); value != "" {
+		queryParams["filterIsLiquidateList"] = value
 	}
-	if params.FilterIsDeleverage != nil {
-		queryParams["filterIsDeleverage"] = strconv.FormatBool(*params.FilterIsDeleverage)
+	if value := joinOptionalBoolFilter(params.FilterIsDeleverage); value != "" {
+		queryParams["filterIsDeleverageList"] = value
 	}
-	if params.FilterIsPositionTpsl != nil {
-		queryParams["filterIsPositionTpsl"] = strconv.FormatBool(*params.FilterIsPositionTpsl)
+	if value := joinOptionalBoolFilter(params.FilterIsPositionTpsl); value != "" {
+		queryParams["filterIsPositionTpslList"] = value
 	}
 	if params.FilterStartCreatedTimeInclusive > 0 {
 		queryParams["filterStartCreatedTimeInclusive"] = strconv.FormatUint(params.FilterStartCreatedTimeInclusive, 10)

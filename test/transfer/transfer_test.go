@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/transfer"
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/transfer"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -113,13 +113,13 @@ func TestCreateTransferOut(t *testing.T) {
 
 	// Create transfer out - should auto-generate nonce, expiry, and signature
 	resp, err := client.Transfer.CreateTransferOut(ctx, params, metadata.Data)
-	
+
 	if err != nil {
 		t.Logf("Transfer out creation error: %v", err)
 		t.Skip("Skipping transfer-out test due to error (may need proper chain configuration)")
 		return
 	}
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 

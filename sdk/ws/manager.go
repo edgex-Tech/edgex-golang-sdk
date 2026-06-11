@@ -118,8 +118,41 @@ func (m *Manager) SubscribeMarketTicker(contractID string, handler MessageHandle
 	return client.Subscribe(fmt.Sprintf("ticker.%s", contractID), nil)
 }
 
-// SubscribeKLine subscribes to K-line (candlestick) data
+// SubscribeAllMarketTicker subscribes to the aggregate ticker feed.
+func (m *Manager) SubscribeAllMarketTicker(handler MessageHandler) error {
+	m.mu.RLock()
+	client := m.publicClient
+	m.mu.RUnlock()
+
+	if client == nil {
+		return fmt.Errorf("public WebSocket connection not established")
+	}
+
+	client.OnMessage("ticker", handler)
+	return client.Subscribe("ticker.all.1s", nil)
+}
+
+// SubscribeMetadata subscribes to metadata updates.
+func (m *Manager) SubscribeMetadata(handler MessageHandler) error {
+	m.mu.RLock()
+	client := m.publicClient
+	m.mu.RUnlock()
+
+	if client == nil {
+		return fmt.Errorf("public WebSocket connection not established")
+	}
+
+	client.OnMessage("metadata", handler)
+	return client.Subscribe("metadata", nil)
+}
+
+// SubscribeKLine subscribes to LAST_PRICE kline updates.
 func (m *Manager) SubscribeKLine(contractID string, interval string, handler MessageHandler) error {
+	return m.SubscribeKLineWithPriceType(contractID, interval, "LAST_PRICE", handler)
+}
+
+// SubscribeKLineWithPriceType subscribes to K-line (candlestick) data for the requested price type.
+func (m *Manager) SubscribeKLineWithPriceType(contractID string, interval string, priceType string, handler MessageHandler) error {
 	m.mu.RLock()
 	client := m.publicClient
 	m.mu.RUnlock()
@@ -129,11 +162,16 @@ func (m *Manager) SubscribeKLine(contractID string, interval string, handler Mes
 	}
 
 	client.OnMessage("kline", handler)
-	return client.Subscribe(fmt.Sprintf("kline.LAST_PRICE.%s.%s", contractID, interval), nil)
+	return client.Subscribe(fmt.Sprintf("kline.%s.%s.%s", priceType, contractID, interval), nil)
 }
 
-// SubscribeDepth subscribes to market depth updates
+// SubscribeDepth subscribes to level-15 market depth updates.
 func (m *Manager) SubscribeDepth(contractID string, handler MessageHandler) error {
+	return m.SubscribeDepthLevel(contractID, 15, handler)
+}
+
+// SubscribeDepthLevel subscribes to market depth updates for the requested level.
+func (m *Manager) SubscribeDepthLevel(contractID string, level int, handler MessageHandler) error {
 	m.mu.RLock()
 	client := m.publicClient
 	m.mu.RUnlock()
@@ -143,7 +181,7 @@ func (m *Manager) SubscribeDepth(contractID string, handler MessageHandler) erro
 	}
 
 	client.OnMessage("depth", handler)
-	return client.Subscribe(fmt.Sprintf("depth.%s.15", contractID), nil)
+	return client.Subscribe(fmt.Sprintf("depth.%s.%d", contractID, level), nil)
 }
 
 // SubscribeTrades subscribes to latest trades
@@ -158,6 +196,34 @@ func (m *Manager) SubscribeTrades(contractID string, handler MessageHandler) err
 
 	client.OnMessage("trades", handler)
 	return client.Subscribe(fmt.Sprintf("trades.%s", contractID), nil)
+}
+
+// SubscribeFundingRate subscribes to funding-rate updates for a contract.
+func (m *Manager) SubscribeFundingRate(contractID string, handler MessageHandler) error {
+	m.mu.RLock()
+	client := m.publicClient
+	m.mu.RUnlock()
+
+	if client == nil {
+		return fmt.Errorf("public WebSocket connection not established")
+	}
+
+	client.OnMessage("fundingRate", handler)
+	return client.Subscribe(fmt.Sprintf("fundingRate.%s", contractID), nil)
+}
+
+// SubscribeAllFundingRate subscribes to funding-rate updates for all contracts.
+func (m *Manager) SubscribeAllFundingRate(handler MessageHandler) error {
+	m.mu.RLock()
+	client := m.publicClient
+	m.mu.RUnlock()
+
+	if client == nil {
+		return fmt.Errorf("public WebSocket connection not established")
+	}
+
+	client.OnMessage("fundingRate", handler)
+	return client.Subscribe("fundingRate.all", nil)
 }
 
 // OnPrivateMessage registers a handler for private WebSocket messages

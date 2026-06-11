@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/metadata"
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/metadata"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/order"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
@@ -186,11 +186,15 @@ func TestGetOrderFillTransactions(t *testing.T) {
 
 	params := order.OrderFillTransactionParams{
 		PaginationParams: order.PaginationParams{
-			Size: "10",
+			Size: "1",
 		},
 	}
+	paramsJSON, _ := json.MarshalIndent(params, "", "  ")
+	t.Logf("GetOrderFillTransactions params: %s", string(paramsJSON))
 
 	transactions, err := client.GetOrderFillTransactions(ctx, &params)
+	respJSON, _ := json.MarshalIndent(transactions, "", "  ")
+	t.Logf("GetOrderFillTransactions response: %s", string(respJSON))
 
 	if err != nil {
 		assert.NoError(t, err)
@@ -247,11 +251,15 @@ func TestGetActiveOrders(t *testing.T) {
 
 	params := order.GetActiveOrderParams{
 		PaginationParams: order.PaginationParams{
-			Size: "10",
+			Size: "1",
 		},
 	}
+	paramsJSON, _ := json.MarshalIndent(params, "", "  ")
+	t.Logf("GetActiveOrders params: %s", string(paramsJSON))
 
 	orders, err := client.GetActiveOrders(ctx, &params)
+	respJSON, _ := json.MarshalIndent(orders, "", "  ")
+	t.Logf("GetActiveOrders response: %s", string(respJSON))
 
 	if err != nil {
 		assert.NoError(t, err)

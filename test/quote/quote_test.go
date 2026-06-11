@@ -4,31 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/quote"
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/quote"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestGetQuoteSummary(t *testing.T) {
-	client, err := test.CreateTestClient()
-	assert.NoError(t, err)
-
-	ctx := test.GetTestContext()
-	contractID, err := test.ResolveTestContractID(ctx, client)
-	assert.NoError(t, err)
-
-	resp, err := client.GetQuoteSummary(ctx, contractID)
-	jsonData, _ := json.MarshalIndent(resp, "", "  ")
-	t.Logf("Quote Summary: %s", string(jsonData))
-	assert.NoError(t, err)
-	assert.NotNil(t, resp)
-	assert.Equal(t, "SUCCESS", resp.Code)
-
-	data := resp.Data
-	assert.NotNil(t, data)
-	// Data is interface{}, skip detailed assertions
-	t.Logf("Ticker summary data: %v", data)
-}
 
 func TestGet24HourQuotes(t *testing.T) {
 	client, err := test.CreateTestClient()
@@ -62,12 +41,14 @@ func TestGetKLine(t *testing.T) {
 	params := quote.GetKLineParams{
 		ContractID: contractID,
 		Interval:   quote.KlineType1Hour,
-		Size:       100,
+		Size:       1,
 		PriceType:  quote.PriceTypeLastPrice,
 	}
+	paramsJSON, _ := json.MarshalIndent(params, "", "  ")
+	t.Logf("GetKLine params: %s", string(paramsJSON))
 	resp, err := client.GetKLine(ctx, params)
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
-	t.Logf("K-Line Data: %s", string(jsonData))
+	t.Logf("GetKLine response: %s", string(jsonData))
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, "SUCCESS", resp.Code)
@@ -123,12 +104,14 @@ func TestGetMultiContractKLine(t *testing.T) {
 	params := quote.GetMultiContractKLineParams{
 		ContractIDs: []string{contractID},
 		Interval:    quote.KlineType1Hour,
-		Size:        100,
+		Size:        1,
 		PriceType:   quote.PriceTypeLastPrice,
 	}
+	paramsJSON, _ := json.MarshalIndent(params, "", "  ")
+	t.Logf("GetMultiContractKLine params: %s", string(paramsJSON))
 	resp, err := client.GetMultiContractKLine(ctx, params)
 	jsonData, _ := json.MarshalIndent(resp, "", "  ")
-	t.Logf("Multi-Contract K-Line Data: %s", string(jsonData))
+	t.Logf("GetMultiContractKLine response: %s", string(jsonData))
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, "SUCCESS", resp.Code)

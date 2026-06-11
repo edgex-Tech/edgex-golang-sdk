@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/order"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +40,7 @@ func TestIntegration_MarketOrderFlow(t *testing.T) {
 	metaResp, err := client.GetMetaData(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, metaResp)
-	
+
 	contract := &metaResp.Data.ContractList[0]
 	contractID := contract.ContractId
 	t.Logf("Using contract: %s", contractID)
@@ -82,26 +82,26 @@ func TestIntegration_MarketOrderFlow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, createResp)
 	assert.NotNil(t, createResp.Data)
-	
+
 	if createResp.Data.OrderId != nil {
 		orderID := *createResp.Data.OrderId
 		t.Logf("Market order created: ID=%s", orderID)
 
 		// Step 4: Wait a moment and verify order status
 		time.Sleep(2 * time.Second)
-		
+
 		t.Log("Step 4: Verifying order execution...")
 		orderResp, err := client.GetOrdersByID(ctx, []string{orderID})
 		assert.NoError(t, err)
 		assert.NotNil(t, orderResp)
-		
+
 		if len(orderResp.Data) > 0 {
 			orderStatus := orderResp.Data[0].Status
 			if orderStatus != nil {
 				t.Logf("Order status: %s", *orderStatus)
 				// Market order should be FILLED or PARTIALLY_FILLED
 				statusUpper := strings.ToUpper(*orderStatus)
-				assert.True(t, 
+				assert.True(t,
 					strings.Contains(statusUpper, "FILLED") || strings.Contains(statusUpper, "COMPLETE"),
 					"Market order should be filled")
 			}
@@ -111,13 +111,23 @@ func TestIntegration_MarketOrderFlow(t *testing.T) {
 		t.Log("Step 5: Querying fill transactions...")
 		fillResp, err := client.GetOrderFillTransactions(ctx, &order.OrderFillTransactionParams{
 			PaginationParams: order.PaginationParams{
-				Size: "10",
+				Size: "1",
 			},
 			OrderFilterParams: order.OrderFilterParams{},
 			FilterOrderIdList: []string{orderID},
 		})
 		assert.NoError(t, err)
 		assert.NotNil(t, fillResp)
+		fillParamsJSON, _ := json.MarshalIndent(order.OrderFillTransactionParams{
+			PaginationParams: order.PaginationParams{
+				Size: "1",
+			},
+			OrderFilterParams: order.OrderFilterParams{},
+			FilterOrderIdList: []string{orderID},
+		}, "", "  ")
+		fillRespJSON, _ := json.MarshalIndent(fillResp, "", "  ")
+		t.Logf("GetOrderFillTransactions params: %s", string(fillParamsJSON))
+		t.Logf("GetOrderFillTransactions response: %s", string(fillRespJSON))
 		t.Logf("Fill transactions found: %d", len(fillResp.Data.DataList))
 
 		// Step 6: Verify position changes
@@ -125,12 +135,12 @@ func TestIntegration_MarketOrderFlow(t *testing.T) {
 		positionsAfter, err := client.GetAccountPositions(ctx)
 		assert.NoError(t, err)
 		assert.NotNil(t, positionsAfter)
-		
+
 		finalPositionCount := len(positionsAfter.Data)
 		t.Logf("Final positions: %d", finalPositionCount)
-		
+
 		// Should have at least one position after market buy
-		assert.GreaterOrEqual(t, finalPositionCount, initialPositionCount, 
+		assert.GreaterOrEqual(t, finalPositionCount, initialPositionCount,
 			"Position count should increase or stay same after market buy")
 
 		t.Log("✅ Market order flow test completed successfully")

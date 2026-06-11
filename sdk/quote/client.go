@@ -27,29 +27,15 @@ func NewClient(client clientInterface) *Client {
 	}
 }
 
-// GetQuoteSummary gets the quote summary for a given contract
-func (c *Client) GetQuoteSummary(ctx context.Context, contractID string) (*ResultGetTickerSummaryModel, error) {
-	url := fmt.Sprintf("%s/api/v2/public/quote/getTicketSummary", c.c.GetBaseURL())
-	queryParams := map[string]string{}
-
-	resp, err := c.c.HttpRequest(url, "GET", nil, queryParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get quote summary: %w", err)
-	}
-	defer resp.Body.Close()
-
+func decodeResponse[T any](resp *http.Response, operation string) (*T, error) {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var result ResultGetTickerSummaryModel
+	var result T
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	if result.Code != "SUCCESS" {
-		return nil, fmt.Errorf("request failed with code: %s", result.Code)
 	}
 
 	return &result, nil
@@ -68,21 +54,15 @@ func (c *Client) Get24HourQuote(ctx context.Context, contractId string) (*Result
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	result, err := decodeResponse[ResultListTicker](resp, "get 24-hour quotes")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return nil, err
 	}
-
-	var result ResultListTicker
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
 	if result.Code != "SUCCESS" {
 		return nil, fmt.Errorf("request failed with code: %s", result.Code)
 	}
 
-	return &result, nil
+	return result, nil
 }
 
 // GetKLine gets the K-line data for a contract
@@ -112,21 +92,15 @@ func (c *Client) GetKLine(ctx context.Context, params GetKLineParams) (*ResultPa
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	result, err := decodeResponse[ResultPageDataKline](resp, "get k-line data")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return nil, err
 	}
-
-	var result ResultPageDataKline
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
 	if result.Code != "SUCCESS" {
 		return nil, fmt.Errorf("request failed with code: %s", result.Code)
 	}
 
-	return &result, nil
+	return result, nil
 }
 
 // GetOrderBookDepth gets the order book depth for a contract
@@ -147,21 +121,15 @@ func (c *Client) GetOrderBookDepth(ctx context.Context, params GetOrderBookDepth
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	result, err := decodeResponse[ResultListDepth](resp, "get order book depth")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return nil, err
 	}
-
-	var result ResultListDepth
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
 	if result.Code != "SUCCESS" {
 		return nil, fmt.Errorf("request failed with code: %s", result.Code)
 	}
 
-	return &result, nil
+	return result, nil
 }
 
 // GetMultiContractKLine gets the K-line data for multiple contracts
@@ -189,19 +157,36 @@ func (c *Client) GetMultiContractKLine(ctx context.Context, params GetMultiContr
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	result, err := decodeResponse[ResultListContractKline](resp, "get multi-contract k-line data")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return nil, err
 	}
-
-	var result ResultListContractKline
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
 	if result.Code != "SUCCESS" {
 		return nil, fmt.Errorf("request failed with code: %s", result.Code)
 	}
 
-	return &result, nil
+	return result, nil
+}
+
+func (c *Client) GetMarketStatus(ctx context.Context, params GetMarketStatusParams) (*ResultGetMarketStatusModel, error) {
+	url := fmt.Sprintf("%s/api/v2/public/quote/getMarketStatus", c.c.GetBaseURL())
+	queryParams := map[string]string{}
+	if params.ContractID != nil {
+		queryParams["contractId"] = strconv.FormatInt(*params.ContractID, 10)
+	}
+
+	resp, err := c.c.HttpRequest(url, "GET", nil, queryParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get market status: %w", err)
+	}
+	defer resp.Body.Close()
+
+	result, err := decodeResponse[ResultGetMarketStatusModel](resp, "get market status")
+	if err != nil {
+		return nil, err
+	}
+	if result.Code != "SUCCESS" {
+		return nil, fmt.Errorf("request failed with code: %s", result.Code)
+	}
+	return result, nil
 }

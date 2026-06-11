@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgex-Tech/edgex-golang-sdk/sdk/ws"
-	"github.com/edgex-Tech/edgex-golang-sdk/test"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/ws"
+	"github.com/edgex-Tech/edgex-golang-sdk/v2/test"
 )
 
 type metadataContract struct {
@@ -96,6 +96,7 @@ func TestWebSocket(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to connect to public WebSocket: %v", err)
 	}
+	t.Logf("Public WS connect request: baseURL=%s path=%s", baseURL, "/api/v1/public/ws")
 
 	metadataBaseURL := os.Getenv("EDGEX_BASE_URL")
 	contractID, err := fetchContractIDFromMetadata(ctx, metadataBaseURL)
@@ -125,6 +126,7 @@ func TestWebSocket(t *testing.T) {
 		{
 			name: "Market Ticker",
 			subFunc: func() error {
+				t.Logf("Public WS subscribe request: channel=%s", fmt.Sprintf("ticker.%s", contractID))
 				return manager.SubscribeMarketTicker(contractID, func(message []byte) {
 					t.Logf("Ticker message received: %s", string(message))
 					if !tickerReceived {
@@ -138,7 +140,8 @@ func TestWebSocket(t *testing.T) {
 		{
 			name: "KLine",
 			subFunc: func() error {
-				return manager.SubscribeKLine(contractID, "DAY_1", func(message []byte) {
+				t.Logf("Public WS subscribe request: channel=%s", fmt.Sprintf("kline.ORACLE_PRICE.%s.%s", contractID, "DAY_1"))
+				return manager.SubscribeKLineWithPriceType(contractID, "DAY_1", "ORACLE_PRICE", func(message []byte) {
 					t.Logf("KLine message received: %s", string(message))
 					if !klineReceived {
 						close(klineMsgCh)
@@ -151,7 +154,8 @@ func TestWebSocket(t *testing.T) {
 		{
 			name: "Depth",
 			subFunc: func() error {
-				return manager.SubscribeDepth(contractID, func(message []byte) {
+				t.Logf("Public WS subscribe request: channel=%s", fmt.Sprintf("depth.%s.200", contractID))
+				return manager.SubscribeDepthLevel(contractID, 200, func(message []byte) {
 					t.Logf("Depth message received: %s", string(message))
 					if !depthReceived {
 						close(depthMsgCh)
@@ -164,6 +168,7 @@ func TestWebSocket(t *testing.T) {
 		{
 			name: "Trades",
 			subFunc: func() error {
+				t.Logf("Public WS subscribe request: channel=%s", fmt.Sprintf("trades.%s", contractID))
 				return manager.SubscribeTrades(contractID, func(message []byte) {
 					t.Logf("Trades message received: %s", string(message))
 					if !tradesReceived {
@@ -228,6 +233,7 @@ func TestPrivateWebSocket(t *testing.T) {
 		APIPassphrase: apiPassphrase,
 		APISecret:     apiSecret,
 	})
+	t.Logf("Private WS request config: baseURL=%s accountId=%d privatePath=%s", baseURL, accountID, "/api/v1/private/ws")
 
 	// Connect to private WebSocket
 	err = manager.ConnectPrivate(ctx)
@@ -237,14 +243,15 @@ func TestPrivateWebSocket(t *testing.T) {
 
 	// Listen for account updates
 	done := make(chan struct{})
-	err = manager.OnPrivateMessage("ACCOUNT_UPDATE", func(message []byte) {
+	t.Logf("Private WS handler registration: group=%s", "account")
+	err = manager.OnPrivateMessage("account", func(message []byte) {
 		var msg map[string]interface{}
 		err := json.Unmarshal(message, &msg)
 		if err != nil {
 			t.Logf("Failed to unmarshal message: %v", err)
 			return
 		}
-		t.Logf("Received account update: %v", msg)
+		t.Logf("Received private account-group message: %v", msg)
 		close(done)
 	})
 	if err != nil {
@@ -255,7 +262,7 @@ func TestPrivateWebSocket(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
-		t.Log("Timeout waiting for account update")
+		t.Fatal("Timeout waiting for private account update")
 	}
 
 	// Clean up
