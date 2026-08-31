@@ -590,7 +590,9 @@ func (c *Client) CreateOrder(ctx context.Context, params *order.CreateOrderParam
 		return nil, fmt.Errorf("failed to get metadata: %w", err)
 	}
 	l2Price := params.Price
-	if params.Type == order.OrderTypeMarket {
+	if params.Type == order.OrderTypeMarket ||
+		params.Type == order.OrderTypeStopMarket ||
+		params.Type == order.OrderTypeTakeProfitMarket {
 		price, err := c.getMarketOrderPrice(ctx, params.ContractId, params.Side)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get market order price: %w", err)
@@ -809,10 +811,11 @@ func (c *Client) getMarketOrderPrice(ctx context.Context, contractId, side strin
 		return nil, fmt.Errorf("contract not found: %s", contractId)
 	}
 
-	// Calculate price based on side
+	// Calculate the L2 execution bound based on side.
 	var price string
-	if side == order.OrderSideBuy {
-		// For buy orders: oracle_price * 10, rounded to price precision
+	switch side {
+	case order.OrderSideBuy:
+		// For buy orders: oracle_price * 10, rounded up to the tick size
 		quote, err := c.Get24HourQuote(ctx, contractId)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get 24-hour quotes: %w", err)
@@ -834,7 +837,7 @@ func (c *Client) getMarketOrderPrice(ctx context.Context, contractId, side strin
 		}
 
 		oraclePrice, err := decimal.NewFromString(oraclePriceStr)
-		if err != nil {
+		if err != nil || !oraclePrice.IsPositive() {
 			return nil, fmt.Errorf("invalid oracle price: %s", oraclePriceStr)
 		}
 		multiplier := decimal.NewFromInt(10)
@@ -842,11 +845,15 @@ func (c *Client) getMarketOrderPrice(ctx context.Context, contractId, side strin
 		if err != nil {
 			return nil, fmt.Errorf("invalid tick size: %s", contract.TickSize)
 		}
-		precision := int32(tickSize.Exponent())
-		price = oraclePrice.Mul(multiplier).Round(precision).String()
-	} else {
+		if !tickSize.IsPositive() {
+			return nil, fmt.Errorf("tick size must be positive: %s", contract.TickSize)
+		}
+		price = oraclePrice.Mul(multiplier).Div(tickSize).Ceil().Mul(tickSize).String()
+	case order.OrderSideSell:
 		// For sell orders: use tick size
 		price = contract.TickSize
+	default:
+		return nil, fmt.Errorf("invalid order side: %s", side)
 	}
 	return &price, nil
 }
