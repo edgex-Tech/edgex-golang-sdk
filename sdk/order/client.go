@@ -41,9 +41,9 @@ func (c *Client) CreateOrder(ctx context.Context, params *CreateOrderParams, met
 	// Set default TimeInForce based on order type if not specified
 	if params.TimeInForce == "" {
 		switch params.Type {
-		case OrderTypeMarket:
+		case OrderTypeMarket, OrderTypeStopMarket, OrderTypeTakeProfitMarket:
 			params.TimeInForce = string(TimeInForce_IMMEDIATE_OR_CANCEL)
-		case OrderTypeLimit:
+		case OrderTypeLimit, OrderTypeStopLimit, OrderTypeTakeProfitLimit:
 			params.TimeInForce = string(TimeInForce_GOOD_TIL_CANCEL)
 		}
 	}
@@ -165,15 +165,6 @@ func (c *Client) createOrderV2(ctx context.Context, params *CreateOrderParams, m
 	size, err := decimal.NewFromString(params.Size)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse size: %w", err)
-	}
-
-	// For conditional orders (STOP_MARKET, TAKE_PROFIT_MARKET) with triggerPrice,
-	// use trigger price for l2Value calculation when price is 0
-	if l2Price.IsZero() && params.TriggerPrice != "" {
-		triggerPriceDec, err := decimal.NewFromString(params.TriggerPrice)
-		if err == nil && triggerPriceDec.GreaterThan(decimal.Zero) {
-			l2Price = triggerPriceDec
-		}
 	}
 
 	l2Value := l2Price.Mul(size)
