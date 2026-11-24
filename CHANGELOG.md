@@ -5,6 +5,15 @@ All notable changes to the EdgeX Golang SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Market data identity** - with an account ID and full HMAC credentials, the public
+  market-data HTTP routes and the public WebSocket handshake now carry the account
+  identity, so an account is served the order book it trades on. Anonymous behaviour
+  is unchanged without credentials; opt out with `DisableMarketDataIdentity`
+  (`sdk.ClientConfig`, `ws.ManagerConfig`). See "Market Data Identity" in the README.
+
 ## [2.0.0] - 2026-03-10
 
 ### Major Changes 🚀

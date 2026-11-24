@@ -49,6 +49,10 @@ type Client struct {
 	apiSecret     string
 	authHeaderKey string
 
+	// Send the account identity on public market-data routes (see ClientConfig)
+	marketDataIdentity bool
+	nowFn              func() time.Time
+
 	// SDK config
 	sdkConfig *internal.SDKConfig
 
@@ -80,6 +84,15 @@ type ClientConfig struct {
 	APISecret        string // HMAC API Secret
 	AuthHeaderKey    string // Custom auth header key (optional)
 	MetaDataCacheTTL *time.Duration
+
+	// DisableMarketDataIdentity turns off the member market-data identity.
+	//
+	// By default, when AccountID and the three HMAC credentials are all set, the
+	// public market-data routes listed in marketDataIdentityPaths are sent with
+	// `accountId` in the query and the same HMAC headers as a private request, so
+	// the gateway answers with the order book this account actually trades on.
+	// Without full credentials, or with this flag set, they stay anonymous.
+	DisableMarketDataIdentity bool
 }
 
 // NewClient creates a new EdgeX SDK client
@@ -116,6 +129,10 @@ func NewClient(cfg *ClientConfig) (*Client, error) {
 		sdkConfig:        sdkConfig,
 		metadataCacheTTL: metadataCacheTTL,
 	}
+
+	client.nowFn = time.Now
+	client.marketDataIdentity = !cfg.DisableMarketDataIdentity &&
+		cfg.AccountID > 0 && cfg.APIKey != "" && cfg.APIPassphrase != "" && cfg.APISecret != ""
 
 	// Initialize sub-clients
 	client.Order = order.NewClient(client)
@@ -217,7 +234,7 @@ func (c *Client) HttpRequest(urlStr string, method string, data map[string]inter
 	method = strings.ToUpper(method)
 
 	// Generate timestamp
-	timestamp := time.Now().UnixMilli()
+	timestamp := c.nowFn().UnixMilli()
 	timestampStr := fmt.Sprintf("%d", timestamp)
 
 	// Parse URL to extract path
@@ -228,6 +245,22 @@ func (c *Client) HttpRequest(urlStr string, method string, data map[string]inter
 	signPath := parsedURL.Path
 	if parsedURL.RawQuery != "" {
 		signPath = signPath + "?" + parsedURL.RawQuery
+	}
+
+	// Member market-data identity: name the account on the public market-data
+	// routes that read it. Everything else public stays anonymous.
+	identity := c.marketDataIdentity && method == http.MethodGet && isMarketDataIdentityPath(parsedURL.Path)
+	if identity {
+		withAccount := make(map[string]string, len(params)+1)
+		for k, v := range params {
+			withAccount[k] = v
+		}
+		withAccount["accountId"] = fmt.Sprintf("%d", c.accountID)
+		params = withAccount
+		if query := parsedURL.Query(); query.Has("accountId") {
+			query.Del("accountId")
+			parsedURL.RawQuery = query.Encode()
+		}
 	}
 
 	// Create request
@@ -264,7 +297,16 @@ func (c *Client) HttpRequest(urlStr string, method string, data map[string]inter
 	}
 
 	// Add HMAC authentication headers
-	if c.shouldSignWithHMAC(signPath) {
+	if identity {
+		// The gateway signs every query parameter it received, empty ones included.
+		requestBody := canonicalQueryString(mergeQueryParams(parsedURL.Query(), params))
+		signature := c.buildHMACSignature(timestampStr, method, parsedURL.Path, requestBody)
+
+		req.Header.Set(fmt.Sprintf("X-%s-Api-Key", c.authHeaderKey), c.apiKey)
+		req.Header.Set(fmt.Sprintf("X-%s-Passphrase", c.authHeaderKey), c.apiPassphrase)
+		req.Header.Set(fmt.Sprintf("X-%s-Signature", c.authHeaderKey), signature)
+		req.Header.Set(fmt.Sprintf("X-%s-Timestamp", c.authHeaderKey), timestampStr)
+	} else if c.shouldSignWithHMAC(signPath) {
 		if c.apiKey == "" || c.apiPassphrase == "" || c.apiSecret == "" {
 			return nil, fmt.Errorf("hmac credentials are required for private endpoints")
 		}
@@ -327,6 +369,43 @@ func mergeQueryParams(query url.Values, params map[string]string) map[string]str
 		merged[k] = v
 	}
 	return merged
+}
+
+// marketDataIdentityPaths are the public V2 market-data routes on which the
+// gateway reads an optional account identity. A request for a contract is then
+// answered from the order book that account trades on.
+var marketDataIdentityPaths = map[string]struct{}{
+	"/api/v2/public/quote/getTicker":                {},
+	"/api/v2/public/quote/getDepth":                 {},
+	"/api/v2/public/quote/getKline":                 {},
+	"/api/v2/public/quote/getMultiContractKline":    {},
+	"/api/v2/public/quote/getMultiDayKline":         {},
+	"/api/v2/public/quote/getAccurateOpenInterest":  {},
+	"/api/v2/public/quote/getMarketStatus":          {},
+	"/api/v2/public/funding/getLatestFundingRate":   {},
+	"/api/v2/public/funding/getFundingRatePage":     {},
+	"/api/v2/public/index/getIndexPriceConfig":      {},
+	"/api/v2/public/index/getMarketTradingSchedule": {},
+}
+
+func isMarketDataIdentityPath(path string) bool {
+	_, ok := marketDataIdentityPaths[path]
+	return ok
+}
+
+// canonicalQueryString is the gateway's signature input for a GET: every query
+// parameter as key=value, sorted by key, joined with "&".
+func canonicalQueryString(params map[string]string) string {
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	pairs := make([]string, 0, len(keys))
+	for _, k := range keys {
+		pairs = append(pairs, k+"="+params[k])
+	}
+	return strings.Join(pairs, "&")
 }
 
 func (c *Client) shouldSignWithHMAC(path string) bool {

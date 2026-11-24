@@ -26,6 +26,7 @@ type Client struct {
 	done              chan struct{}
 	pingTicker        *time.Ticker
 	isPrivate         bool
+	publicIdentity    bool
 	subscriptions     map[string]struct{}
 	onConnectHooks    []func()
 	onMessageHooks    []func([]byte)
@@ -44,6 +45,12 @@ type PrivateAuthConfig struct {
 	APIPassphrase string
 	APISecret     string
 	RequestURI    string
+
+	// PublicIdentity sends these credentials on the handshake of a public
+	// (isPrivate == false) connection, so the market data pushed on it is the
+	// order book this account trades on. Ignored unless the account ID and all
+	// three credentials are set.
+	PublicIdentity bool
 }
 
 // MessageHandler is a function type for handling WebSocket messages
@@ -84,7 +91,7 @@ func NewClientWithConfig(wsURL string, isPrivate bool, accountID int64, cfg *Pri
 		requestURI = "/" + requestURI
 	}
 
-	return &Client{
+	client := &Client{
 		url:           wsURL,
 		handlers:      make(map[string]MessageHandler),
 		done:          make(chan struct{}),
@@ -97,6 +104,9 @@ func NewClientWithConfig(wsURL string, isPrivate bool, accountID int64, cfg *Pri
 		requestURI:    requestURI,
 		nowFn:         time.Now,
 	}
+	client.publicIdentity = !isPrivate && cfg.PublicIdentity && accountID > 0 &&
+		client.apiKey != "" && client.apiPassphrase != "" && client.apiSecret != ""
+	return client
 }
 
 // Connect establishes a WebSocket connection
@@ -105,7 +115,7 @@ func (c *Client) Connect(ctx context.Context) error {
 	headers := http.Header{}
 	dialURL := c.url
 
-	if c.isPrivate {
+	if c.isPrivate || c.publicIdentity {
 		var err error
 		dialURL, err = c.configureHMACPrivateConnection(&dialer, headers)
 		if err != nil {
