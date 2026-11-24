@@ -226,7 +226,7 @@ What to expect:
 - Without an account ID or with incomplete credentials the SDK behaves exactly as before (anonymous).
 - The identity is verified. With wrong or revoked credentials these market-data calls fail with an authentication error instead of silently falling back to anonymous data; fix the credentials or turn the identity off.
 - Responses to identified requests are per-account (`Cache-Control: private, no-store`); do not share them between accounts.
-- The WebSocket identity is fixed at connect time. Reconnect after changing account or credentials.
+- The WebSocket identity is fixed at connect time. Reconnect after changing account or credentials. If the gateway cannot verify the identity because one of its backends is unavailable, it accepts the public WebSocket as anonymous; reconnect later to get the account's book again.
 
 To keep market data anonymous even with credentials configured:
 
