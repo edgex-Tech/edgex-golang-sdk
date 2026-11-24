@@ -7,6 +7,8 @@ import (
 	"sync"
 )
 
+const publicWSPath = "/api/v1/public/ws" // WebSocket still uses v1 per API docs
+
 // Manager handles WebSocket connections
 type Manager struct {
 	publicClient  *Client
@@ -17,6 +19,7 @@ type Manager struct {
 	apiKey        string
 	apiPassphrase string
 	apiSecret     string
+	noIdentity    bool
 	mu            sync.RWMutex
 }
 
@@ -26,6 +29,14 @@ type ManagerConfig struct {
 	APIPassphrase string
 	APISecret     string
 	PrivateWSPath string
+
+	// DisableMarketDataIdentity keeps the public connection anonymous.
+	//
+	// By default, when the account ID and the three HMAC credentials are all set,
+	// ConnectPublic signs the handshake like the private connection does, so the
+	// gateway pushes the order book this account trades on. Without full
+	// credentials the public connection is anonymous either way.
+	DisableMarketDataIdentity bool
 }
 
 // NewManager creates a new WebSocket manager with HMAC authentication
@@ -58,6 +69,7 @@ func NewManagerWithConfig(baseURL string, accountID int64, cfg *ManagerConfig) *
 		apiKey:        strings.TrimSpace(cfg.APIKey),
 		apiPassphrase: strings.TrimSpace(cfg.APIPassphrase),
 		apiSecret:     cfg.APISecret,
+		noIdentity:    cfg.DisableMarketDataIdentity,
 	}
 }
 
@@ -70,8 +82,15 @@ func (m *Manager) ConnectPublic(ctx context.Context) error {
 		return nil
 	}
 
-	url := fmt.Sprintf("%s/api/v1/public/ws", m.baseURL) // WebSocket still uses v1 per API docs
-	client := NewClient(url, false, 0, "", "", "")       // No auth needed for public
+	url := fmt.Sprintf("%s%s", m.baseURL, publicWSPath)
+	// Anonymous unless the manager has an account and full credentials.
+	client := NewClientWithConfig(url, false, m.accountID, &PrivateAuthConfig{
+		APIKey:         m.apiKey,
+		APIPassphrase:  m.apiPassphrase,
+		APISecret:      m.apiSecret,
+		RequestURI:     publicWSPath,
+		PublicIdentity: !m.noIdentity,
+	})
 	if err := client.Connect(ctx); err != nil {
 		return err
 	}
